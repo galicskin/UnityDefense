@@ -5,6 +5,7 @@ using System;
 
 public abstract class SystemBase : MonoBehaviour
 {
+
     public bool IsActive { get; private set; }
 
     // 매니저 연결 여부와 무관하게 이벤트 제공

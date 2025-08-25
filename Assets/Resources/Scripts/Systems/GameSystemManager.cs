@@ -8,6 +8,26 @@ using System.Reflection;
 
 public class GameSystemManager : SystemManager
 {
+    private static GameSystemManager _instance;
+    public static GameSystemManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                // 씬에서 GameManager 찾기 (직접 gameManager를 넣어놨을때를 대비
+                _instance = FindObjectOfType<GameSystemManager>();
+
+                // 없으면 새로 생성
+                if (_instance == null)
+                {
+                    GameObject gsm = new GameObject("GameSystemManager");
+                    _instance = gsm.AddComponent<GameSystemManager>();
+                }
+            }
+            return _instance;
+        }
+    }
 
     [Serializable]
     private class DiscoveredSystemEntry

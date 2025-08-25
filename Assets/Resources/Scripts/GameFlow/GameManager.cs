@@ -31,9 +31,26 @@ public class GameManager : MonoBehaviour
     }
 
     //GameCoordinator gameCoordinator = null;
+    
+    // Secne 조절
     private SceneLoader sceneLoader { get; set; }
+
+    // state 조절
     private GameStateMachine stateMachine { get; set; }
     private StateChangeRule stateRule { get; set; }
+
+    // Player 조절
+    private PlayerBase _player;
+    public PlayerBase Player 
+    {
+        // 만약 playerBase가 바뀌거나 할때.. 갱신이 필요함.. -> 조건부에 현재 player랑 같은지 확인하는 코드?
+        get
+        {
+            if (_player == null)
+                _player = FindObjectOfType<PlayerBase>();
+            return _player;
+        }
+    }
 
     [SerializeField] GameState gameState;
 

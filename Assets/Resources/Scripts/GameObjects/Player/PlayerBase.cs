@@ -7,18 +7,27 @@ public class PlayerBase : MonoBehaviour
     [Header("References")]
     [SerializeField] private Camera playerCam;            // 1인칭 카메라(자식 권장)
 
-    [Header("Move")]
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float jumpSpeed = 5f;
-    [SerializeField] private float gravity = -20f;
+    public Camera GetCamera() 
+    {
+        if (playerCam != null)
+            return playerCam;
+
+        Debug.LogWarning("Player camera is not assigned!");
+        return null;
+    }
+
+    [Header("Move")] 
+    [SerializeField] protected const float moveSpeed = 5f;
+    [SerializeField] protected const float jumpSpeed = 5f;
+    [SerializeField] protected const float gravity = -20f;
 
     [Header("Look")]
-    [SerializeField] private float sensX = 200f;          // deg/sec
-    [SerializeField] private float sensY = 200f;          // deg/sec
-    [SerializeField] private float pitchMin = -85f;
-    [SerializeField] private float pitchMax = 85f;
+    [SerializeField] private const float sensX = 200f;          // deg/sec
+    [SerializeField] private const float sensY = 200f;          // deg/sec
+    [SerializeField] private const float pitchMin = -85f;
+    [SerializeField] private const float pitchMax = 85f;
 
-    private CharacterController cc;
+    private CharacterController characterController;
     private Vector2 moveInput;       // WASD
     private Vector2 lookInput;       // Mouse delta
     private bool jumpPressed;
@@ -66,7 +75,7 @@ public class PlayerBase : MonoBehaviour
 
     void Awake()
     {
-        cc = GetComponent<CharacterController>();
+        characterController = GetComponent<CharacterController>();
         if (playerCam == null)
             playerCam = GetComponentInChildren<Camera>(true);
         Cursor.lockState = CursorLockMode.Locked;
@@ -113,7 +122,7 @@ public class PlayerBase : MonoBehaviour
         Vector3 world = transform.TransformDirection(input) * moveSpeed;
 
         // 중력/점프
-        if (cc.isGrounded)
+        if (characterController.isGrounded)
         {
             if (velY < 0f) velY = -2f;
             if (jumpPressed) velY = jumpSpeed;
@@ -121,13 +130,13 @@ public class PlayerBase : MonoBehaviour
         velY += gravity * Time.deltaTime;
 
         Vector3 motion = world + Vector3.up * velY;
-        cc.Move(motion * Time.deltaTime);
+        characterController.Move(motion * Time.deltaTime);
     }
 
     // 점프만 따로 쓰고 싶다면(현재는 Move() 내부에서 처리 중)
     public void Jump()
     {
-        if (cc.isGrounded) velY = jumpSpeed;
+        if (characterController.isGrounded) velY = jumpSpeed;
     }
 
     // 카메라/시선 회전: 몸통(Yaw), 카메라(Pitch)
@@ -148,9 +157,32 @@ public class PlayerBase : MonoBehaviour
         camTr.localEulerAngles = new Vector3(pitch, 0f, 0f);
     }
 
+    private bool BuildPressed = false;
+    public void OnBuildTower(InputAction.CallbackContext ctx)
+    {
+        if (ctx.started) BuildPressed = true;
+        
+    }
+
     // 단발 키 규칙/우선순위 처리(상호작용, 달리기 토글, 인벤토리 등)
     public void ClickKeysRule()
     {
+        if (BuildPressed)
+        {
+            BuildPressed = false;
+            var buildSystem = GameSystemManager.Instance.GetSystem<BuildingSystem>();
+            buildSystem.SetPreviewTower(TowerId.test);
+            if (buildSystem.CheckBuildCondition(TowerId.test))
+            {
+                buildSystem.CreateTower(TowerId.test);
+                //Create Tower
+            }
+            else
+            {
+                //don't Create Tower
+            }
+
+        }
         // 예: 좌Shift를 누르면 잠깐 달리기(토글/홀드 취향껏)
         // var isRun = Keyboard.current.leftShiftKey.isPressed;
         // if (isRun) moveSpeed = runSpeed; else moveSpeed = walkSpeed;
@@ -158,4 +190,6 @@ public class PlayerBase : MonoBehaviour
         // 예: 상호작용 (E 키)
         // if (Keyboard.current.eKey.wasPressedThisFrame) Interact();
     }
+
+    
 }
