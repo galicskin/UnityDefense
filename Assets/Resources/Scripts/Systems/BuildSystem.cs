@@ -2,14 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum TowerId
-{
-    test = -1,
-    None = 0,
-    Archer_01 = 1001,
-    Cannon_01 = 2001,
-    // ...
-}
+
 
 public class BuildingSystem : SystemBase
 {
@@ -17,7 +10,7 @@ public class BuildingSystem : SystemBase
     
     public bool isBuildMode = false;
     bool CanBuild = false;
-    TowerId previewTowerId = TowerId.None;
+    [SerializeField]TowerId previewTowerId = TowerId.None;
     public void CreateTower(TowerId towerId)
     {
         if (!CheckBuildCondition(towerId))
