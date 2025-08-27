@@ -103,7 +103,6 @@ public class GameSystemManager : SystemManager
 
     void Start()
     {
-        //RegisterSystem<GameFlowSystem>();
         foreach (var entry in discoveredSystems.Where(e => e.enable))
         {
             var type = Type.GetType(entry.assemblyQualifiedName, throwOnError: false);

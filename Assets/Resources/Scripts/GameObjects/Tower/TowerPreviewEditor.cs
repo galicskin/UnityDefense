@@ -1,7 +1,8 @@
 #if UNITY_EDITOR
+using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using System.IO;
 
 [CustomEditor(typeof(TowerBase), true)]
 public class TowerBaseEditor : Editor
@@ -50,15 +51,40 @@ public static class TowerPreviewGenerator
         var dir = Path.GetDirectoryName(srcPath);
         var name = Path.GetFileNameWithoutExtension(srcPath);
 
-        CreateOne(srcPath, Path.Combine(dir, $"{name}_Preview_Blue.prefab"), cfg.blueMat);
-        CreateOne(srcPath, Path.Combine(dir, $"{name}_Preview_Red.prefab"), cfg.redMat);
+        GameObject bluePreview = CreateOne(srcPath, Path.Combine(dir, $"{name}_Preview_Blue.prefab"), cfg.blueMat);
+        GameObject redPreview = CreateOne(srcPath, Path.Combine(dir, $"{name}_Preview_Red.prefab"), cfg.redMat);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         EditorUtility.DisplayDialog("Preview Prefab", "Blue/Red 프리뷰 프리팹 생성 완료!", "OK");
+
+        var root = PrefabUtility.LoadPrefabContents(srcPath);
+        try
+        {
+            TowerBase derived = root.GetComponent<TowerBase>();
+
+            if (!derived)
+            {
+                EditorUtility.DisplayDialog(
+                    "TowerBase 파생 없음",
+                    "해당 프리팹에는 TowerBase를 상속한 스크립트가 없습니다.",
+                    "확인"
+                );
+            }
+            else
+            {
+                derived.SetPreviewObject(bluePreview, redPreview);
+                PrefabUtility.SaveAsPrefabAsset(root, srcPath);
+            }
+            
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
     }
 
-    private static void CreateOne(string srcPrefabPath, string dstPrefabPath, Material mat)
+    private static GameObject CreateOne(string srcPrefabPath, string dstPrefabPath, Material mat)
     {
         var root = PrefabUtility.LoadPrefabContents(srcPrefabPath);
         try
@@ -70,6 +96,9 @@ public static class TowerPreviewGenerator
         {
             PrefabUtility.UnloadPrefabContents(root);
         }
+
+        return AssetDatabase.LoadAssetAtPath<GameObject>(dstPrefabPath);
+
     }
 
     private static void PrepareAsPreview(GameObject root, Material mat)
@@ -100,6 +129,8 @@ public static class TowerPreviewGenerator
             if (b is Renderer || b is Animator) continue;
             b.enabled = false;
         }
+        
+        
     }
 
     private static void SetLayerRecursively(GameObject go, int layer)

@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
-public class PoolManager : MonoBehaviour
+public class ObjectPoolSystem : SystemBase
 {
-    public static PoolManager Instance { get; private set; }
+    public static ObjectPoolSystem Instance { get; private set; }
 
     [System.Serializable]
     public class PoolEntry

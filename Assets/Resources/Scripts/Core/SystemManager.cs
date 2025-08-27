@@ -18,6 +18,8 @@ public class SystemManager : MonoBehaviour
     {
         var type = typeof(T);
 
+        if (gameObject.TryGetComponent<T>(out var component)) return;
+
         if (systemMap.TryGetValue(type, out var existing))
         {
             if (!recreate) return;

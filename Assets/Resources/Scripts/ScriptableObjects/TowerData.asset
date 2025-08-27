@@ -12,4 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 813eb26f666f5cc4ea62ec6996d08d0a, type: 3}
   m_Name: TowerData
   m_EditorClassIdentifier: 
-  towerPrefabs: []
+  towerPrefabs:
+  - id: -1
+    prefab: {fileID: 4058519914473115558, guid: aeed7a6a28cfb3b458c50a1df73e3f4d,
+      type: 3}

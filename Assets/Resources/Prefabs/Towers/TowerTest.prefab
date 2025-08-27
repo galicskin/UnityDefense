@@ -121,7 +121,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isWork: 0
-  PreviewObjectRed: {fileID: 2803517553608296308, guid: f00fb2141b3845e48aaaa498634a380e,
+  previewObjectRed: {fileID: 2803517553608296308, guid: f00fb2141b3845e48aaaa498634a380e,
     type: 3}
-  PreviewObjectBlue: {fileID: 8107621403628410509, guid: fc992c27f886851458383f717deabf48,
+  previewObjectBlue: {fileID: 8107621403628410509, guid: fc992c27f886851458383f717deabf48,
     type: 3}

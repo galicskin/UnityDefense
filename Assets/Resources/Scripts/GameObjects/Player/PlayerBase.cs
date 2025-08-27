@@ -170,7 +170,7 @@ public class PlayerBase : MonoBehaviour
         if (BuildPressed)
         {
             BuildPressed = false;
-            var buildSystem = GameSystemManager.Instance.GetSystem<BuildingSystem>();
+            var buildSystem = GameSystemManager.Instance.GetSystem<BuildSystem>();
             buildSystem.SetPreviewTower(TowerId.test);
             if (buildSystem.CheckBuildCondition(TowerId.test))
             {
