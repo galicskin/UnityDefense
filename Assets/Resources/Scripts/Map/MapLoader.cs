@@ -8,13 +8,19 @@ public class MapLoader : MonoBehaviour
 
     [Header("Spawn")]
     public Transform parent;                 // 생성할 부모 Transform
-    public Vector2 cellSize = new Vector2(1, 1);  // 셀 간격(2D 기준)
     public bool originTopLeft_YDown = true;  // (0,0)이 좌상단이고 +y가 아래로 갈지 여부
 
     private MapData mapData;
     private Dictionary<string, BlockProp> blockById; // id -> BlockProp 캐시
 
-    public void LoadMapData(MapData _mapData = null)
+    // 버튼에서는 이 메서드만 호출
+    public void LoadMapData(Object obj) // 파라미터 제거
+    {
+        var map = obj as MapData;
+        LoadMapDataInternal(map);
+    }
+
+    private void LoadMapDataInternal(MapData _mapData = null)
     {
         if (_mapData != null)
         {
@@ -37,6 +43,13 @@ public class MapLoader : MonoBehaviour
         }
 
         BuildLookup(); // id->BlockProp 캐시 구축
+
+        if (!parent)
+        {
+            GameObject MapDataParent = new GameObject("MapDataParent");
+            new GameObject("MapDataParent").transform.position = Vector3.zero;
+            parent = new GameObject("MapDataParent").transform;
+        }
     }
 
 
@@ -73,6 +86,9 @@ public class MapLoader : MonoBehaviour
         int width = Mathf.Max(1, mapData.width);
         int height = Mathf.Max(1, mapData.height);
 
+        float blockUnit = mapData.BlockUnit;
+        Vector3 startPoint = mapData.MapStartPoint;
+
         for (int y = 0; y < height; y++)
         {
             var row = (y < mapData.MapProp.Count) ? mapData.MapProp[y] : null;
@@ -89,12 +105,9 @@ public class MapLoader : MonoBehaviour
                     continue;
                 }
 
-                // 월드 좌표 계산 (2D 기준)
-                Vector3 pos = originTopLeft_YDown
-                    ? new Vector3(x * cellSize.x, -y * cellSize.y, 0f)  // 위에서 아래로 +y
-                    : new Vector3(x * cellSize.x, y * cellSize.y, 0f); // 일반 좌하단 원점
+                Vector3 loadPoint = startPoint + new Vector3(blockUnit*x,blockUnit*0.5f,blockUnit*y);
 
-                Instantiate(bp.prefab, pos, Quaternion.identity, parent);
+                Instantiate(bp.prefab, loadPoint, Quaternion.identity, parent);
             }
         }
     }

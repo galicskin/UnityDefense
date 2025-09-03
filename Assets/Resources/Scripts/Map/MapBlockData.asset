@@ -17,7 +17,8 @@ MonoBehaviour:
     displayName: StoneBlock
     hardness: 1
     density: 1
-    prefab: {fileID: 0}
+    prefab: {fileID: 7709992469180565152, guid: bde59f33dde02744f8783f4c9bfbb395,
+      type: 3}
     icon: {fileID: 21300000, guid: 87fa08934062982428daa874c328f454, type: 3}
     drops:
     - oreType: 0
@@ -27,7 +28,8 @@ MonoBehaviour:
     displayName: IronBlock
     hardness: 2
     density: 1
-    prefab: {fileID: 0}
+    prefab: {fileID: 7709992469180565152, guid: 93d9e014f233e6e43b971eaf6cc9d64c,
+      type: 3}
     icon: {fileID: 21300000, guid: bf72cccf6d53a79468545e146be8b6f5, type: 3}
     drops:
     - oreType: 0
@@ -37,7 +39,8 @@ MonoBehaviour:
     displayName: CopperBlock
     hardness: 1
     density: 1
-    prefab: {fileID: 0}
+    prefab: {fileID: 7709992469180565152, guid: f3bba8a88f8745941aebfe021d9542a1,
+      type: 3}
     icon: {fileID: 21300000, guid: 2957f633c14c9a24f99c9216ed52d41d, type: 3}
     drops:
     - oreType: 0
