@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameFlowSystem : SystemBase
+public class OrderSystem : SystemBase
 {
     // Start is called before the first frame update
     void Start()

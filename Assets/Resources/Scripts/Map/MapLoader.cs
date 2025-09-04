@@ -105,7 +105,7 @@ public class MapLoader : MonoBehaviour
                     continue;
                 }
 
-                Vector3 loadPoint = startPoint + new Vector3(blockUnit*x,blockUnit*0.5f,blockUnit*y);
+                Vector3 loadPoint = startPoint + new Vector3(-blockUnit*x,blockUnit*0.5f,blockUnit*y);
 
                 Instantiate(bp.prefab, loadPoint, Quaternion.identity, parent);
             }
