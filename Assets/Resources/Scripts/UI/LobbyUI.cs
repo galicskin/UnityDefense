@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class LobbyUI : MonoBehaviour
 {
-    [Header("Target Scene")]
-    [SerializeField] private string nextSceneName = "Game"; // ¹Ù²ã¼­ »ç¿ë
+    //[Header("Target Scene")]
+    //[SerializeField] private string nextSceneName = "Game"; // ¹Ù²ã¼­ »ç¿ë
 
     public void OnClickStartGame()
     {

@@ -123,14 +123,20 @@ public static class TowerPreviewGenerator
             r.receiveShadows = false;
         }
 
-        // (선택) 렌더러 외 스크립트 비활성화
+        // 스크립트 비활성화
         foreach (var b in root.GetComponentsInChildren<Behaviour>(true))
         {
-            if (b is Renderer || b is Animator) continue;
+            if (b is Animator) continue;
             b.enabled = false;
         }
-        
-        
+
+        // 렌더러 비활성화
+        foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+        {
+            r.enabled = false;
+        }
+
+
     }
 
     private static void SetLayerRecursively(GameObject go, int layer)

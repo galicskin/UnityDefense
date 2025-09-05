@@ -25,7 +25,7 @@ public sealed class SelectionSystem : SystemBase
 
     [Header("선택 링 크기 조절")]
     [SerializeField] float autoPaddingPercent = 0.5f;
-    [SerializeField, Min(0.05f)] private float projectorDepthPercent = 0.3f;
+    //[SerializeField, Min(0.05f)] private float projectorDepthPercent = 0.3f;
     private void Awake()
     {
         if (!mainCamera) mainCamera = Camera.main;

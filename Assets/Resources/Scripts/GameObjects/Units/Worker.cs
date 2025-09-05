@@ -10,6 +10,10 @@ public class Worker : PooledObject, ISelectable
 
     [HideInInspector] public WorkerState State = WorkerState.Idle;
 
+    Order currentOrder = new Order(OrderType.None);
+    Queue<Order> normalQueue = new Queue<Order>(); // 평시
+    Stack<Order> emergencyStack = new Stack<Order>(); // 비상
+
     // 내부 검색용(정렬 캐시)
     [System.NonSerialized] public float __lastDist2;
 
@@ -25,6 +29,7 @@ public class Worker : PooledObject, ISelectable
     }
     private void Awake()
     {
+        //agent = GetComponent<NavMeshAgent>();
         //agent = GetComponent<NavMeshAgent>();
         //animator = GetComponentInChildren<Animator>();
     }
@@ -114,6 +119,40 @@ public class Worker : PooledObject, ISelectable
     {
         Debug.Log($"{name} 선택 해제");
         // TODO: 아웃라인 제거 or UI 닫기
+    }
+
+
+    //BehaviourTree behaviourTree;
+
+    // ========== 1) Order가 바뀔 때 1회 호출 ==========
+    public void UpdateOrder(Order order)
+    {
+        currentOrder = order;
+        State = (order == null || order.Type == OrderType.None) ? WorkerState.Idle : WorkerState.Busy;
+        // Order업데이트
+    }
+
+    public void ReceiveNormalOrder(Order order)
+    {
+        normalQueue.Enqueue(order);
+        UpdateOrder(order);
+    }
+    public void ReceiveEmergencyOrder(Order order)
+    {
+        emergencyStack.Push(order);
+        UpdateOrder(order);
+    }
+
+    // ========== 2) 매 프레임 실행(세부 이동/행동) ==========
+    void Update()
+    {
+        if (currentOrder == null || currentOrder.Type == OrderType.None)
+        {
+            State = WorkerState.Idle;
+            return;
+        }
+
+        //behaviourTree.RunBT();
     }
 
 }

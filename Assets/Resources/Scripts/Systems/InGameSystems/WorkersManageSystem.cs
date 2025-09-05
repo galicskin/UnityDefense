@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+
 public enum WorkerState { Idle, Reserved, Busy, Dead }
 public enum Faction { Player, Enemy, Neutral } // 필요 시 확장
 
@@ -53,6 +55,24 @@ public class WorkersManageSystem : SystemBase
         }
         w.State = s;
         if (invokeEvent) OnWorkerStateChanged?.Invoke(w, s);
+    }
+
+    public Worker FindLeastBusyWorker()
+    {
+        // 1) Idle 상태 우선
+        if (_idle.Count > 0)
+            return _idle.First();
+
+        // 2) Idle이 없으면 Reserved 중 하나
+        if (_reserved.Count > 0)
+            return _reserved.First();
+
+        // 3) 모두 바쁘면 Busy 중 하나 (혹은 null 반환)
+        if (_busy.Count > 0)
+            return _busy.First();
+
+        // 4) 아무도 없으면 null
+        return null;
     }
 
 }

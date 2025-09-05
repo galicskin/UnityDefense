@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df7990cd7383d66439c4d8e2b407c95e, type: 3}
+  m_Name: BehaviourTreeAsset
+  m_EditorClassIdentifier: 
+  blackboardTemplate: {fileID: 0}
+  root: {fileID: 615814347886667514}
+  nodes:
+  - {fileID: 615814347886667514}
+  - {fileID: 5614673064624666993}
+--- !u!114 &615814347886667514
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SequenceNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SequenceNode
+  editorPosition:
+    serializedVersion: 2
+    x: 83
+    y: 98
+    width: 240
+    height: 130
+  children: []
+  comment: 
+--- !u!114 &5614673064624666993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SequenceNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SequenceNode
+  editorPosition:
+    serializedVersion: 2
+    x: 226
+    y: 282
+    width: 240
+    height: 130
+  children: []
+  comment: 
