@@ -599,7 +599,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultMapData: {fileID: 11400000, guid: 02c8a765a158f7a43ab13a8b08914d57, type: 2}
-  parent: {fileID: 476832796}
+  parent: {fileID: 1544046811}
   originTopLeft_YDown: 1
 --- !u!4 &877237366
 Transform:
