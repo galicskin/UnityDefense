@@ -18,4 +18,7 @@ public class PooledObject : MonoBehaviour
     // 가져올 때/반납될 때 초기화용 훅 (선택)
     public virtual void OnTakenFromPool() { gameObject.SetActive(true); }
     public virtual void OnReturnedToPool() { gameObject.SetActive(false); }
+
+    //public virtual void OnPostSpawned() { }
+
 }

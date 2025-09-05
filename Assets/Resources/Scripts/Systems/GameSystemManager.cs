@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-
+[DefaultExecutionOrder(-1000)]
 public class GameSystemManager : SystemManager
 {
     private static GameSystemManager _instance;

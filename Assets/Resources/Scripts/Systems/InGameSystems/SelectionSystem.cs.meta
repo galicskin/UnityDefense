@@ -3,7 +3,10 @@ guid: 30b3b567e79477046834949ae8389ad4
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - mainCamera: {instanceID: 0}
+  - selectionDecalPrefab: {fileID: 4135364741511289966, guid: 225e86af541b4be44be41ef92a82b318,
+      type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

@@ -11,7 +11,7 @@ public class UITestScript : MonoBehaviour
 
     public void SpawnTest()
     {
-        ObjectPoolSystem.Instance.Spawn("TestEnemy", SpawnPoint.position, SpawnPoint.rotation);
+        //ObjectPoolSystem.Instance.Spawn("TestEnemy", SpawnPoint.position, SpawnPoint.rotation);
     }
 
     public void Update()

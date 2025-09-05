@@ -4,8 +4,6 @@ using UnityEngine;
 using UnityEngine.Pool;
 public class ObjectPoolSystem : SystemBase
 {
-    public static ObjectPoolSystem Instance { get; private set; }
-
     [System.Serializable]
     public class PoolEntry
     {
@@ -23,9 +21,6 @@ public class ObjectPoolSystem : SystemBase
 
     private void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
-
         foreach (var e in entries)
         {
             if (e.prefab == null || string.IsNullOrEmpty(e.key)) continue;

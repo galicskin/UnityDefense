@@ -35,8 +35,8 @@ public abstract class TowerBase : PooledObject
 
     public void SetPreviewObject(GameObject _previewObjectBlue, GameObject _previewObjectRed)
     {
-        PreviewObjectBlue = previewObjectBlue;
-        PreviewObjectRed = previewObjectRed;
+        PreviewObjectBlue = _previewObjectBlue;
+        PreviewObjectRed = _previewObjectRed;
     }
 
     // 추후 업데이트 또는 막 이것저것 진행해서 Preiew가 설정이 안될때마다 아래 버튼을 눌러 갱신하는 방식은 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
-public sealed class SelectionSystem : MonoBehaviour
+public sealed class SelectionSystem : SystemBase
 {
     [Header("Refs")]
     [SerializeField] private Camera mainCamera;
@@ -17,11 +17,15 @@ public sealed class SelectionSystem : MonoBehaviour
     [Header("Ring Size Override (선택)")]
     [SerializeField] private bool overrideSize = false;
     [SerializeField, Min(0.1f)] private float ringRadius = 0.8f;    // 미터 기준
-    [SerializeField, Min(0.05f)] private float projectorDepth = 0.5f;
+    [SerializeField, Min(0.05f)] private float projectorDepth = 1.0f;
+
 
     private ISelectable current;
     private DecalProjector sharedProjector; // 공용 1개
 
+    [Header("선택 링 크기 조절")]
+    [SerializeField] float autoPaddingPercent = 0.5f;
+    [SerializeField, Min(0.05f)] private float projectorDepthPercent = 0.3f;
     private void Awake()
     {
         if (!mainCamera) mainCamera = Camera.main;
@@ -86,8 +90,8 @@ public sealed class SelectionSystem : MonoBehaviour
 
         if (!selectionDecalPrefab)
         {
-            Debug.LogError("[SelectionSystem] selectionDecalPrefab 이 비었습니다. DecalProjector 프리팹을 할당하세요.");
-            return;
+            selectionDecalPrefab = Resources.Load<GameObject>("Prefabs/SelectDecal/SelectionDecal");
+
         }
 
         var go = Instantiate(selectionDecalPrefab);
@@ -116,14 +120,27 @@ public sealed class SelectionSystem : MonoBehaviour
     {
         if (!sharedProjector) return;
 
-        // 선택 대상의 자식으로 붙이고 로컬 트랜스폼 초기화
         var t = sharedProjector.transform;
-        t.SetParent(target.Transform, false);
-        t.localPosition = Vector3.zero;
+        t.SetParent(target.Transform, true);               // 부모 영향은 유지하되, 이후 position은 월드로 세팅
         t.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        t.localScale = Vector3.one; // 비균일 스케일 부모일 경우 왜곡될 수 있음(가능하면 앵커 빈 오브젝트 권장)
+        t.localScale = Vector3.one;
 
-        // (선택) 타입별 반경/색 분기 원하면 여기서 sharedProjector.size/opacity/material 색을 조정
+        Bounds sb = target.SelectionBounds;
+
+        // ── 크기(X,Y): XZ 최대 치수로 원형 링 직경
+        Vector3 sizeWS = sb.size;                          // SelectionBounds가 월드 기준이라고 가정
+        float baseDiameter = Mathf.Max(sizeWS.x, sizeWS.z);
+        float diameter = overrideSize ? ringRadius * 2f
+                                      : baseDiameter * (1f + autoPaddingPercent);
+
+        // ── 깊이(Z): 지면 요철 높이폭 기반 (최소 기존 값 유지)
+        float depthLocal = Mathf.Max(projectorDepth, sizeWS.y + 0.02f);
+
+        sharedProjector.size = new Vector3(diameter, diameter, depthLocal);
+
+        // ── 위치: 월드로 '가장 높은 점'에 맞춤 → 상자가 아래로 파고들며 겹침
+        t.position = new Vector3(sb.center.x, sb.center.y, sb.center.z);
+
         sharedProjector.enabled = true;
     }
 

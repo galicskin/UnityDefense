@@ -1,14 +1,20 @@
+// Assets/YourFolder/Editor/MapGridEditorWindow.cs
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 
 public class MapGridEditorWindow : EditorWindow
 {
+    // ===== 타겟 & 직렬화 객체 =====
     MapData _data;
+    SerializedObject _so;
+    SerializedProperty _propWidth, _propHeight, _propMapBlockData, _propMapProp;
 
+    // 크기 접근자 (null-safe)
     int W => Mathf.Max(1, _data?.width ?? 1);
     int H => Mathf.Max(1, _data?.height ?? 1);
 
+    // 스크롤
     Vector2 _scroll;
 
     // 셀 크기(아이콘)
@@ -54,35 +60,107 @@ public class MapGridEditorWindow : EditorWindow
         win.Show();
     }
 
+    void OnEnable()
+    {
+        EditorApplication.playModeStateChanged += OnPlayModeChanged;
+    }
+
+    void OnDisable()
+    {
+        EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+    }
+
+    void OnPlayModeChanged(PlayModeStateChange st)
+    {
+        // 플레이 전환에도 참조/바인딩 갱신
+        if (_data != null) SetTarget(_data);
+    }
+
     void SetTarget(MapData data)
     {
         _data = data;
-        if (_data == null) return;
 
-        EnsureSize();
-        RebuildOptionsAndIcons(scanExistingCells: true);
+        if (_data == null)
+        {
+            _so = null;
+            _propWidth = _propHeight = _propMapBlockData = _propMapProp = null;
+            return;
+        }
+
+        _so = new SerializedObject(_data);
+        _propWidth = _so.FindProperty("width");
+        _propHeight = _so.FindProperty("height");
+        _propMapBlockData = _so.FindProperty("mapBlockData");
+        _propMapProp = _so.FindProperty("MapProp");
+
+        EnsureSize();                      // 그리드 크기 보정
+        RebuildOptionsAndIcons(true);      // 브러시 옵션/아이콘 재구성
+        Repaint();
     }
 
     void OnGUI()
     {
         using (new EditorGUILayout.HorizontalScope())
         {
-            _data = (MapData)EditorGUILayout.ObjectField("MapData", _data, typeof(MapData), false);
+            var newData = (MapData)EditorGUILayout.ObjectField("MapData", _data, typeof(MapData), false);
+            if (newData != _data) SetTarget(newData);
             if (GUILayout.Button("Reload", GUILayout.Width(70))) SetTarget(_data);
         }
-        if (_data == null) { EditorGUILayout.HelpBox("Assign a MapData asset.", MessageType.Info); return; }
 
-        int newW = EditorGUILayout.IntField("width", W);
-        int newH = EditorGUILayout.IntField("height", H);
-        _data.mapBlockData = (MapBlockData)EditorGUILayout.ObjectField("mapBlockData", _data.mapBlockData, typeof(MapBlockData), false);
+        if (_data == null || _so == null)
+        {
+            EditorGUILayout.HelpBox("Assign a MapData asset.", MessageType.Info);
+            return;
+        }
+
+        _so.Update(); // ★ 항상 Update
+
+        // width/height/mapBlockData를 SerializedProperty로 그리기
+        EditorGUILayout.PropertyField(_propWidth);
+        EditorGUILayout.PropertyField(_propHeight);
+        EditorGUILayout.PropertyField(_propMapBlockData);
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("Apply Size")) { _data.width = Mathf.Max(1, newW); _data.height = Mathf.Max(1, newH); EnsureSize(); MarkDirty(); }
-            if (GUILayout.Button("Clear All")) { ClearAll(); MarkDirty(); }
-            if (GUILayout.Button("Save")) { MarkDirty(true); }
+            if (GUILayout.Button("Apply Size"))
+            {
+                // 값 보정 후 적용
+                _propWidth.intValue = Mathf.Max(1, _propWidth.intValue);
+                _propHeight.intValue = Mathf.Max(1, _propHeight.intValue);
+
+                _so.ApplyModifiedProperties();
+                Undo.RecordObject(_data, "Resize Map");
+                EnsureSize();
+                EditorUtility.SetDirty(_data);
+                Repaint();
+            }
+
+            if (GUILayout.Button("Clear All"))
+            {
+                Undo.RecordObject(_data, "Clear Map");
+                ClearAll();
+                EditorUtility.SetDirty(_data);
+                _so.ApplyModifiedProperties();
+                Repaint();
+            }
+
+            if (GUILayout.Button("Save"))
+            {
+                _so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(_data);
+                AssetDatabase.SaveAssets();
+            }
         }
 
+        EditorGUILayout.Space(6);
+        EditorGUILayout.LabelField($"Grid   X(width →),  Y(height ↓)   ({W} × {H})", EditorStyles.boldLabel);
+
+        if (_wrapBoldMini == null)
+            _wrapBoldMini = new GUIStyle(EditorStyles.miniBoldLabel) { wordWrap = true, alignment = TextAnchor.UpperLeft };
+        if (_emptyText == null)
+            _emptyText = new GUIStyle(EditorStyles.centeredGreyMiniLabel) { alignment = TextAnchor.MiddleCenter };
+
+        // 브러시 UI
         using (new EditorGUILayout.HorizontalScope())
         {
             EditorGUILayout.LabelField("Brush", GUILayout.Width(50));
@@ -99,14 +177,7 @@ public class MapGridEditorWindow : EditorWindow
             EditorGUILayout.HelpBox("Left-click: choose | Alt+Right: pick | Right-drag: paint  (Eraser ON → erase)", MessageType.None);
         }
 
-        EditorGUILayout.Space(6);
-        EditorGUILayout.LabelField($"Grid   X(width →),  Y(height ↓)   ({W} × {H})", EditorStyles.boldLabel);
-
-        if (_wrapBoldMini == null)
-            _wrapBoldMini = new GUIStyle(EditorStyles.miniBoldLabel) { wordWrap = true, alignment = TextAnchor.UpperLeft };
-        if (_emptyText == null)
-            _emptyText = new GUIStyle(EditorStyles.centeredGreyMiniLabel) { alignment = TextAnchor.MiddleCenter };
-
+        // 스크롤 및 뷰 렉트
         float gridW = W * (CELL_W + GAP);
         float gridH = H * (CELL_H + GAP);
         float contentW = HeaderLeft + gridW;
@@ -118,6 +189,7 @@ public class MapGridEditorWindow : EditorWindow
 
         _scroll = GUI.BeginScrollView(viewRect, _scroll, new Rect(0, 0, contentW, contentH));
 
+        // 가시 범위
         VisibleRangeX(_scroll.x, viewRect.width, out int xStart, out int xEnd);
         VisibleRangeY(_scroll.y, viewRect.height, out int yStart, out int yEnd);
 
@@ -136,7 +208,7 @@ public class MapGridEditorWindow : EditorWindow
             GUI.Label(new Rect(Y_TITLE_W, cy, Y_INDEX_W, CELL_H), y.ToString(), EditorStyles.miniLabel);
         }
 
-        // ====== 셀 그리기 (버튼 없음! 입력은 아래 핸들러에서) ======
+        // ====== 셀 그리기 ======
         for (int y = yStart; y <= yEnd; y++)
         {
             var row = _data.MapProp[y]; if (row == null) continue;
@@ -151,7 +223,7 @@ public class MapGridEditorWindow : EditorWindow
                 // 배경
                 EditorGUI.DrawRect(r, new Color(0, 0, 0, 0.15f));
 
-                // 아이콘
+                // 아이콘/텍스트
                 if (_iconById.TryGetValue(cellId, out var sp) && sp != null)
                     DrawSprite(r, sp);
                 else
@@ -163,13 +235,17 @@ public class MapGridEditorWindow : EditorWindow
             }
         }
 
-        // ====== 입력 처리: 좌클릭 메뉴 / 우클릭 드래그 페인트 ======
+        // ====== 입력 처리 ======
         HandleMouseInput(xStart, xEnd, yStart, yEnd);
 
         GUI.EndScrollView();
+
+        // 마지막에 Apply
+        _so.ApplyModifiedProperties();
     }
 
-    // 스프라이트(아틀라스) 그리기
+    // ---------- 유틸들 ----------
+
     void DrawSprite(Rect dst, Sprite sp)
     {
         if (sp == null || sp.texture == null) return;
@@ -182,12 +258,10 @@ public class MapGridEditorWindow : EditorWindow
         GUI.DrawTextureWithTexCoords(rd, tex, uv, true);
     }
 
-    // 좌클릭: 메뉴 / Alt+우클릭: 픽 / 우클릭 드래그: 페인트
     void HandleMouseInput(int xStart, int xEnd, int yStart, int yEnd)
     {
         var e = Event.current;
 
-        // 다른 컨트롤이 이벤트를 선점했다면 중단
         if (GUIUtility.hotControl != 0 || EditorGUIUtility.editingTextField) return;
 
         Vector2 mp = e.mousePosition;
@@ -204,7 +278,7 @@ public class MapGridEditorWindow : EditorWindow
             if (_hover.x != -1) break;
         }
 
-        // ─ Left Click: 메뉴 열기 (버튼 안 쓰고 직접 처리)
+        // Left Click: 메뉴
         if (e.type == EventType.MouseDown && e.button == 0 && _hover.x != -1)
         {
             ShowCellMenuAtMouse(_hover.x, _hover.y);
@@ -212,7 +286,7 @@ public class MapGridEditorWindow : EditorWindow
             return;
         }
 
-        // ─ Alt + Right: 픽
+        // Alt + Right: 픽
         if (e.type == EventType.MouseDown && e.alt && e.button == 1 && _hover.x != -1)
         {
             string id = _data.MapProp[_hover.y].cells[_hover.x] ?? "";
@@ -223,7 +297,7 @@ public class MapGridEditorWindow : EditorWindow
             return;
         }
 
-        // ─ Right: 드래그 페인트
+        // Right: 드래그 페인트
         if (e.type == EventType.MouseDown && e.button == 1 && _hover.x != -1)
         {
             _isPainting = true;
@@ -234,7 +308,6 @@ public class MapGridEditorWindow : EditorWindow
 
         if (_isPainting && e.type == EventType.MouseDrag)
         {
-            // 드래그 중 호버 갱신
             _hover = new Vector2Int(-1, -1);
             for (int y = yStart; y <= yEnd; y++)
             {
@@ -256,7 +329,9 @@ public class MapGridEditorWindow : EditorWindow
         {
             _isPainting = false;
             _paintedThisDrag.Clear();
-            MarkDirty();
+            // 그리드 변경 후 저장 표시
+            EditorUtility.SetDirty(_data);
+            _so.ApplyModifiedProperties();
             e.Use();
         }
     }
@@ -265,16 +340,15 @@ public class MapGridEditorWindow : EditorWindow
     {
         var menu = new GenericMenu();
 
-        // (empty)
         bool isEmpty = string.IsNullOrEmpty(_data.MapProp[y].cells[x]);
         menu.AddItem(new GUIContent("(empty)"), isEmpty, () =>
         {
+            Undo.RecordObject(_data, "Paint Cell");
             _data.MapProp[y].cells[x] = "";
-            MarkDirty();
+            EditorUtility.SetDirty(_data);
             Repaint();
         });
 
-        // 옵션 (라벨=displayName, 값=id)
         for (int i = 1; i < _idOptions.Length; i++)
         {
             string id = _idOptions[i];
@@ -284,18 +358,17 @@ public class MapGridEditorWindow : EditorWindow
             int cx = x, cy = y, ci = i;
             menu.AddItem(new GUIContent(label), on, () =>
             {
+                Undo.RecordObject(_data, "Paint Cell");
                 _data.MapProp[cy].cells[cx] = _idOptions[ci];
-                MarkDirty();
+                EditorUtility.SetDirty(_data);
                 Repaint();
             });
         }
 
-        // 커서 위치에 표시 (스크롤/확대 보정 필요 없음)
         menu.ShowAsContext();
-
-        // 이벤트는 우리가 소비
         Event.current.Use();
     }
+
     void PaintCell(in Vector2Int cell, bool erase)
     {
         if (cell.x < 0 || cell.x >= W || cell.y < 0 || cell.y >= H) return;
@@ -305,8 +378,13 @@ public class MapGridEditorWindow : EditorWindow
         var row = _data.MapProp[cell.y];
         string val = erase ? "" : (_brushId ?? "");
         EnsureIdInCache(val, GetLabelForId(val));
+
         if (row.cells[cell.x] != val)
+        {
+            Undo.RecordObject(_data, "Paint Cell");
             row.cells[cell.x] = val;
+            EditorUtility.SetDirty(_data);
+        }
     }
 
     string GetLabelForId(string id)
@@ -324,6 +402,7 @@ public class MapGridEditorWindow : EditorWindow
 
         _iconById.Clear();
 
+        // mapBlockData → BlockProperties(id, displayName, icon)에서 옵션 구성
         if (_data?.mapBlockData?.BlockProperties != null)
         {
             foreach (var bp in _data.mapBlockData.BlockProperties)
@@ -340,6 +419,7 @@ public class MapGridEditorWindow : EditorWindow
             }
         }
 
+        // 현재 그리드에만 존재하는 id도 옵션에 포함(아이콘은 없음)
         if (scanExistingCells && _data?.MapProp != null)
         {
             for (int y = 0; y < _data.MapProp.Count; y++)
@@ -411,13 +491,16 @@ public class MapGridEditorWindow : EditorWindow
         if (end < start) end = start;
     }
 
+    // 리스트 크기 보정 (직접 데이터에 작업하되, 직전 Undo/Dirty 처리)
     void EnsureSize()
     {
         if (_data.MapProp == null) _data.MapProp = new List<MapRow>();
 
+        // 행 수 보정
         while (_data.MapProp.Count < H) _data.MapProp.Add(new MapRow());
         while (_data.MapProp.Count > H) _data.MapProp.RemoveAt(_data.MapProp.Count - 1);
 
+        // 각 행의 열 수 보정
         for (int y = 0; y < H; y++)
         {
             var row = _data.MapProp[y];
@@ -434,11 +517,5 @@ public class MapGridEditorWindow : EditorWindow
         for (int y = 0; y < H; y++)
             for (int x = 0; x < W; x++)
                 _data.MapProp[y].cells[x] = string.Empty;
-    }
-
-    void MarkDirty(bool saveNow = false)
-    {
-        EditorUtility.SetDirty(_data);
-        if (saveNow) AssetDatabase.SaveAssets();
     }
 }
