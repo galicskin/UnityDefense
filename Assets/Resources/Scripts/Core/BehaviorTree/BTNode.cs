@@ -4,9 +4,6 @@ using UnityEngine;
 
 namespace BehaviourTreeKit
 {
-    /// <summary>
-    /// Execution context passed to nodes.
-    /// </summary>
     public class BTContext
     {
         public GameObject owner;
@@ -112,29 +109,16 @@ namespace BehaviourTreeKit
         }
     }
 
-    /// <summary>
-    /// Implement this on a component to expose an action callable by ActionNode.
-    /// </summary>
-    public interface IBehaviourAction
-    {
-        BTState ExecuteAction(string actionName, BTContext ctx);
-    }
 
-    [CreateAssetMenu(menuName = "BehaviourTree/Nodes/Action", fileName = "Action")]
-    public class ActionNode : BTNode
+
+    
+    public abstract class ActionNode : BTNode
     {
         public string actionName = ""; // Logical name looked up on IBehaviourAction
         public bool requireComponent = true;
 
-        public override BTState Tick(BTContext ctx)
-        {
-            if (ctx.owner == null)
-                return BTState.Failure;
-            var comp = ctx.owner.GetComponent<IBehaviourAction>();
-            if (comp == null)
-                return requireComponent ? BTState.Failure : BTState.Success;
-            return comp.ExecuteAction(actionName, ctx);
-        }
+        public abstract override BTState Tick(BTContext ctx);
+
     }
 
     [CreateAssetMenu(menuName = "BehaviourTree/Nodes/Wait", fileName = "Wait")]
