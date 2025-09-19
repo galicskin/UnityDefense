@@ -1,0 +1,175 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7827731792381790223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SequenceNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SequenceNode
+  editorPosition:
+    serializedVersion: 2
+    x: 134
+    y: 279
+    width: 240
+    height: 130
+  children:
+  - {fileID: 6808784395335403884}
+  comment: EmergencyNode
+--- !u!114 &-5752003430052383320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SequenceNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SequenceNode
+  editorPosition:
+    serializedVersion: 2
+    x: 510
+    y: 291
+    width: 240
+    height: 130
+  children:
+  - {fileID: 1427026331040150369}
+  - {fileID: 8532889737375205361}
+  - {fileID: 8343846672157044026}
+  comment: WorkNode
+--- !u!114 &-4821407672573351269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SelectorNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SelectorNode
+  editorPosition:
+    serializedVersion: 2
+    x: 311
+    y: 100
+    width: 240
+    height: 130
+  children:
+  - {fileID: -7827731792381790223}
+  - {fileID: -5752003430052383320}
+  comment: Root
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df7990cd7383d66439c4d8e2b407c95e, type: 3}
+  m_Name: WorkerBehaviour
+  m_EditorClassIdentifier: 
+  blackboardTemplate: {fileID: 11400000, guid: 024f8c5435ce287429b5f8f6836b0647, type: 2}
+  root: {fileID: 0}
+  nodes:
+  - {fileID: 6808784395335403884}
+  - {fileID: 1427026331040150369}
+  - {fileID: 8532889737375205361}
+  - {fileID: 8343846672157044026}
+--- !u!114 &1427026331040150369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d43e5b4f4878b543a3e42885f95fce2, type: 3}
+  m_Name: MoveNode
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 421
+    y: 471
+    width: 240
+    height: 196
+  children: []
+  comment: WorkToCarry
+  actionName: 
+  requireComponent: 1
+--- !u!114 &6808784395335403884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d43e5b4f4878b543a3e42885f95fce2, type: 3}
+  m_Name: MoveNode
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 45
+    y: 462
+    width: 240
+    height: 196
+  children: []
+  comment: RunFromEnemy
+  actionName: 
+  requireComponent: 1
+--- !u!114 &8343846672157044026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d43e5b4f4878b543a3e42885f95fce2, type: 3}
+  m_Name: MoveNode
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 959.52216
+    y: 456
+    width: 240
+    height: 196
+  children: []
+  comment: MoveToCenter
+  actionName: 
+  requireComponent: 1
+--- !u!114 &8532889737375205361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69792fbebfd356143b2885e03fbf829f, type: 3}
+  m_Name: CarryMinesNode
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 679
+    y: 493
+    width: 240
+    height: 152
+  children: []
+  comment: CarryMine
+  actionName: 
+  requireComponent: 1

@@ -37,25 +37,6 @@ namespace BehaviourTreeKit
 
             return BTState.Running;
         }
-
-        public bool TryGetValue<T>(BTContext ctx, string fieldName, out T value)
-        {
-
-            BlackboardKey keyRef = BlackboardKeys[(fieldName, Blackboard.TypeMap[typeof(T)])];
-            if (keyRef == null)
-            {
-                value = default;
-                return false;
-            }
-
-            if (!ctx.blackboard.TryGet<T>(keyRef.key, out value))
-            {
-                value = default;
-                return false;
-            }
-
-            return true;
-        }
     }
 
 }

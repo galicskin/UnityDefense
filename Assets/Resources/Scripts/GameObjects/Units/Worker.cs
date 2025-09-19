@@ -1,18 +1,20 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI; 
-
+using UnityEngine.AI;
+using BehaviourTreeKit;
 public class Worker : PooledObject, ISelectable
 {
     //private NavMeshAgent agent;
     //private Animator animator;
-
+    
     [HideInInspector] public WorkerState State = WorkerState.Idle;
 
     Order currentOrder = new Order(OrderType.None);
     Queue<Order> normalQueue = new Queue<Order>(); // 평시
     Stack<Order> emergencyStack = new Stack<Order>(); // 비상
+
+    BehaviourTreeRunner behaviourTreeRunner;
 
     // 내부 검색용(정렬 캐시)
     [System.NonSerialized] public float __lastDist2;
@@ -32,6 +34,13 @@ public class Worker : PooledObject, ISelectable
         //agent = GetComponent<NavMeshAgent>();
         //agent = GetComponent<NavMeshAgent>();
         //animator = GetComponentInChildren<Animator>();
+        if (behaviourTreeRunner == null)
+        {
+            behaviourTreeRunner = this.gameObject.AddComponent<BehaviourTreeRunner>();
+            behaviourTreeRunner.treeAsset = Resources.Load<BTAsset>("BehaviourTreeData/WorkerBehaviour");
+
+        }
+        behaviourTreeRunner.autoRun = false;
     }
 
     // ── PooledObject 훅 ─────────────────────────────────────
@@ -152,7 +161,7 @@ public class Worker : PooledObject, ISelectable
             return;
         }
 
-        //behaviourTree.RunBT();
+        behaviourTreeRunner.Tick(Time.deltaTime);
     }
 
 }

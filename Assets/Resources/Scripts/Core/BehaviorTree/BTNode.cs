@@ -119,6 +119,25 @@ namespace BehaviourTreeKit
         public abstract Dictionary<(string,BlackboardKey.ValueType), BlackboardKey> BlackboardKeys { get; set; }
         public abstract override BTState Tick(BTContext ctx);
 
+        public virtual bool TryGetValue<T>(BTContext ctx, string fieldName, out T value)
+        {
+
+            BlackboardKey keyRef = BlackboardKeys[(fieldName, Blackboard.TypeMap[typeof(T)])];
+            if (keyRef == null)
+            {
+                value = default;
+                return false;
+            }
+
+            if (!ctx.blackboard.TryGet<T>(keyRef.key, out value))
+            {
+                value = default;
+                return false;
+            }
+
+            return true;
+        }
+
     }
 
     [CreateAssetMenu(menuName = "BehaviourTree/Nodes/Wait", fileName = "Wait")]
