@@ -13,6 +13,28 @@ MonoBehaviour:
   m_Name: Bindings
   m_EditorClassIdentifier: Assembly-CSharp-Editor:BehaviourTreeKit:BTBindingTable
   list: []
+--- !u!114 &-5144347424495589947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d43e5b4f4878b543a3e42885f95fce2, type: 3}
+  m_Name: MoveNode
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 165
+    y: 285
+    width: 240
+    height: 196
+  children: []
+  comment: 
+  actionName: 
+  requireComponent: 1
 --- !u!114 &-3994057391774499149
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -39,32 +61,10 @@ MonoBehaviour:
   m_Name: BehaviourTreeAsset
   m_EditorClassIdentifier: 
   blackboardTemplate: {fileID: -3994057391774499149}
-  root: {fileID: 4696827174777659593}
+  root: {fileID: 7785516005436093094}
   nodes:
-  - {fileID: 4696827174777659593}
-  - {fileID: 2169015906738686089}
---- !u!114 &2169015906738686089
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d43e5b4f4878b543a3e42885f95fce2, type: 3}
-  m_Name: MoveNode
-  m_EditorClassIdentifier: 
-  editorPosition:
-    serializedVersion: 2
-    x: 104
-    y: 346
-    width: 240
-    height: 130
-  children: []
-  comment: 
-  actionName: 
-  requireComponent: 1
+  - {fileID: 7785516005436093094}
+  - {fileID: -5144347424495589947}
 --- !u!114 &4696827174777659593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85,4 +85,25 @@ MonoBehaviour:
     height: 130
   children:
   - {fileID: 2169015906738686089}
+  comment: 
+--- !u!114 &7785516005436093094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: SequenceNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SequenceNode
+  editorPosition:
+    serializedVersion: 2
+    x: 99
+    y: 108
+    width: 240
+    height: 130
+  children:
+  - {fileID: -5144347424495589947}
   comment: 

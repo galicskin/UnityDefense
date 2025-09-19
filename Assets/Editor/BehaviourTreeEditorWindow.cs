@@ -13,6 +13,7 @@ namespace BehaviourTreeKit.Editor
     {
         private BTAsset _asset;
         private Vector2 _scroll;
+        private Vector2 _blackboardScroll;
         private BTNode _selected;
 
         private GUIStyle _nodeStyle;
@@ -52,6 +53,7 @@ namespace BehaviourTreeKit.Editor
             {
                 alignment = TextAnchor.MiddleLeft
             };
+            
         }
 
         // ───────────────────────────────────────────────────────────────────────
@@ -127,7 +129,8 @@ namespace BehaviourTreeKit.Editor
                     if (n == null) continue;
                     var id = n.GetInstanceID();
                     n.editorPosition.width = NODE_W;
-                    n.editorPosition.height = NODE_H;
+                    float extra = GetExtraHeight(n);
+                    n.editorPosition.height = NODE_H + extra;
                     n.editorPosition = GUI.Window(id, n.editorPosition, _ => DrawNodeWindow(n), "");
                 }
                 EndWindows();
@@ -159,9 +162,16 @@ namespace BehaviourTreeKit.Editor
                 // 오른쪽: 사이드바(Blackboard + Node Inspector)
                 EditorGUILayout.BeginVertical(GUILayout.Width(SIDEBAR_W));
                 {
-                    DrawBlackboardPanel();   // ← 여기서 BTAsset의 Blackboard를 연결/생성/편집
-                    GUILayout.Space(6);
-                    DrawInspectorPanel(nodes);
+                    using (var scroll = new EditorGUILayout.ScrollViewScope(
+                                  _blackboardScroll,
+                                  GUILayout.Width(SIDEBAR_W),
+                                  GUILayout.ExpandHeight(true)))   // 사이드바가 남는 높이를 다 먹게
+                    {
+                        _blackboardScroll = scroll.scrollPosition;
+                        DrawBlackboardPanel();   // ← 여기서 BTAsset의 Blackboard를 연결/생성/편집
+                        GUILayout.Space(6);
+                        DrawInspectorPanel(nodes);
+                    }
                 }
                 EditorGUILayout.EndVertical();
             }
@@ -344,11 +354,73 @@ namespace BehaviourTreeKit.Editor
                     if (GUI.Button(rightRect, ">")) MoveChildOrder(node, toFront: false);
                 }
             }
-
+            
             if (node is ActionNode)
             {
-                node.GetType();
-                GUI.Label(new Rect(w * 0.6f, h - 25, w * 0.35f, 22), $" {node.GetType()} : ActionNode");
+                float heightInterval = 22f;
+                Rect infoRect = new Rect(8, 48 + heightInterval, 60f , 22);
+                ActionNode actionNode = node as ActionNode;
+
+
+                // 루프가 끝난 후, 설정될 데이터
+                Dictionary<(string,BlackboardKey.ValueType) ,BlackboardKey> changedBlackboardKeys = new();
+
+
+                foreach (var blackboardKey in actionNode.BlackboardKeys)
+                {
+                    string fieldName = blackboardKey.Key.Item1;
+                    BlackboardKey.ValueType valueType = blackboardKey.Key.Item2;
+
+                    infoRect.width = fieldName.Length*7f;
+                    
+                    GUI.Label(infoRect, fieldName);
+
+
+                    var valueKeyList = _asset.blackboardTemplate.GetKeyList(valueType);
+                    string[] displayOptions = valueKeyList.ToArray();
+                    
+                    int curIndex;
+                    if (blackboardKey.Value == null)
+                    {
+                        curIndex = -1;
+                    }
+                    else
+                    {
+                        // 할당이 된 상태라면
+                        BlackboardKey selectedBlackboardKey = _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardKey.Value.key);
+                        if (selectedBlackboardKey == actionNode.BlackboardKeys[blackboardKey.Key])  // ref 비교라서 원본껄 가져와야함.
+                            curIndex = valueKeyList.IndexOf(blackboardKey.Value.key);
+                        else
+                        {
+                            //actionNode.BlackboardKeys[blackboardKey.Key] = null;
+                            curIndex = -1;
+                        }
+                    }
+
+                    curIndex = EditorGUI.Popup(
+                        new Rect(w - 68f, infoRect.y, 60f, 22f),
+                        curIndex,        // 현재 선택값
+                        displayOptions        // 표시할 문자열 배열
+                    );
+                    infoRect.y += heightInterval;
+
+                    if (curIndex == -1)
+                    {
+                        changedBlackboardKeys[(fieldName,valueType)] = null;
+                        continue;
+                    }
+
+                    var blackboardFieldName = displayOptions[curIndex];
+                    changedBlackboardKeys[(fieldName, valueType)] = _asset.blackboardTemplate.GetRefBlackboardKey(valueType,blackboardFieldName);
+
+                }
+
+                foreach (var changedBlackboardKey in changedBlackboardKeys)
+                {
+                    actionNode.BlackboardKeys[changedBlackboardKey.Key] = changedBlackboardKey.Value;
+                }
+
+
             }
 
             // 창 드래그
@@ -560,6 +632,17 @@ namespace BehaviourTreeKit.Editor
             AssetDatabase.SaveAssets();
             Repaint();
         }
+
+        private float GetExtraHeight(BTNode bTNode)
+        {
+            if (bTNode is not ActionNode)
+                return 0f;
+
+            ActionNode actionNode = bTNode as ActionNode;
+
+            return actionNode.BlackboardKeys.Count * 22f;
+        }
+
     }
 }
 #endif

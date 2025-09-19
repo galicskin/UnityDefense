@@ -116,7 +116,7 @@ namespace BehaviourTreeKit
     {
         public string actionName = ""; // Logical name looked up on IBehaviourAction
         public bool requireComponent = true;
-
+        public abstract Dictionary<(string,BlackboardKey.ValueType), BlackboardKey> BlackboardKeys { get; set; }
         public abstract override BTState Tick(BTContext ctx);
 
     }
