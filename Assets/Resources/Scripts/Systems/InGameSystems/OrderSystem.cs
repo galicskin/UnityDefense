@@ -42,11 +42,10 @@ public class OrderSystem : SystemBase
     }
 
     // 새 명령 등록
-    public void IssueOrder(Order order)
+    public void DirectNewOrderToFreeWorker(Order order)
     {
         Worker worker = WorkersManager.FindLeastBusyWorker();
-
+        worker.ReceiveNormalOrder(order);
     }
-
 
 }

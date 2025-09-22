@@ -14,7 +14,7 @@ public class Worker : PooledObject, ISelectable
     Queue<Order> normalQueue = new Queue<Order>(); // 평시
     Stack<Order> emergencyStack = new Stack<Order>(); // 비상
 
-    BehaviourTreeRunner behaviourTreeRunner;
+    public BehaviourTreeRunner behaviourTreeRunner;
 
     // 내부 검색용(정렬 캐시)
     [System.NonSerialized] public float __lastDist2;

@@ -9,6 +9,7 @@ public class DetechedObject : ActionNode
 
     public override BTState Tick(BTContext ctx)
     {
+        Debug.Log("Detect Object");
         return BTState.Failure;
     }
 }

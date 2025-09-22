@@ -9,9 +9,29 @@ namespace BehaviourTreeKit
     {
         public Blackboard blackboardTemplate;
         public BTNode root;
+#if UNITY_EDITOR
         [HideInInspector] public List<BTNode> nodes = new();
+#endif
 
-        public BTNode[] GetAllNodes() => nodes.ToArray();
+
+        /// <summary>
+        /// 런타임에서도 모든 노드를 가져오고 싶을 때는 root부터 재귀 탐색
+        /// </summary>
+        public BTNode[] GetAllNodes()
+        {
+            var list = new List<BTNode>();
+            CollectRecursive(root, list);
+            return list.ToArray();
+        }
+
+        private void CollectRecursive(BTNode n, List<BTNode> list)
+        {
+            if (n == null || list.Contains(n)) return;
+            list.Add(n);
+            if (n.children == null) return;
+            foreach (var c in n.children)
+                CollectRecursive(c, list);
+        }
 
         /// <summary>
         /// Build a runtime instance of the tree and blackboard.
@@ -27,6 +47,7 @@ namespace BehaviourTreeKit
                 if (n == null) return null;
                 if (map.TryGetValue(n, out var cached)) return cached;
                 var clone = Instantiate(n);
+                clone.hideFlags = HideFlags.DontSave;
                 clone.children = new List<BTNode>();
                 map[n] = clone;
                 foreach (var c in n.children)

@@ -220,14 +220,32 @@ namespace BehaviourTreeKit.Editor
 
             var menu = new GenericMenu();
 
-            // 기본 노드
-            void Add<T>() where T : BTNode
-                => menu.AddItem(new GUIContent(typeof(T).Name), false, () => CreateNode(typeof(T)));
+            // ── 기본 노드 자동 등록 (BTNode 전체)
+            var nodeTypes = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a =>
+                {
+                    try { return a.GetTypes(); }
+                    catch (ReflectionTypeLoadException e) { return e.Types.Where(t => t != null); }
+                })
+                .Where(t => typeof(BTNode).IsAssignableFrom(t)
+                            && t.IsClass
+                            && !t.IsAbstract
+                            && !typeof(ActionNode).IsAssignableFrom(t)) // ActionNode는 제외
+                .OrderBy(t => t.Name);
 
-            Add<SequenceNode>();
-            Add<SelectorNode>();
-            Add<InverterNode>();
-            Add<WaitNode>();
+            // BTNode 전부 자동 등록
+            foreach (var t in nodeTypes)
+            {
+                menu.AddItem(new GUIContent(t.Name), false, () => CreateNode(t));
+            }
+            //// 기본 노드
+            //void Add<T>() where T : BTNode
+            //    => menu.AddItem(new GUIContent(typeof(T).Name), false, () => CreateNode(typeof(T)));
+
+            //Add<SequenceNode>();
+            //Add<SelectorNode>();
+            //Add<InverterNode>();
+            //Add<WaitNode>();
 
             // ActionNode 파생 자동 등록 
             var actionTypes = BTTypeUtil.GetConcreteActionNodeTypes();

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4707664307370652056}
   - component: {fileID: 5415162640266353459}
   - component: {fileID: 6982084960091403506}
+  - component: {fileID: 6829602723380605582}
   m_Layer: 0
   m_Name: Worker
   m_TagString: Untagged
@@ -118,3 +119,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09eba80e3c6b86948814bb94faa5a7db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  State: 0
+  behaviourTreeRunner: {fileID: 6829602723380605582}
+--- !u!114 &6829602723380605582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3545657260397508570}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62b816effafa27d4fa4da8c93104cf0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  treeAsset: {fileID: 11400000, guid: 0bda7da724aa1184782bfd4b5c6d8148, type: 2}
+  autoRun: 1

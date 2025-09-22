@@ -17,6 +17,7 @@ namespace BehaviourTreeKit
         public void Build()
         {
             if (treeAsset == null) { Debug.LogError("[BT] No tree asset."); return; }
+            Debug.Log("Build Start");
             (_root, _bb) = treeAsset.BuildRuntime();
             _ctx = new BTContext { owner = gameObject, blackboard = _bb };
         }
