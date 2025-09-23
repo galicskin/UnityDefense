@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-4407063566916670517
+--- !u!114 &-2314005741601853468
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9,19 +9,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10f0a5e50181af146901ecbe060dceca, type: 3}
-  m_Name: DetechedObject
+  m_Script: {fileID: 11500000, guid: 6c0db343fe161e14cbfda32ab75983f6, type: 3}
+  m_Name: SequenceNode
   m_EditorClassIdentifier: 
   editorPosition:
     serializedVersion: 2
-    x: 190
-    y: 297
+    x: 340
+    y: 56
     width: 240
     height: 130
-  children: []
+  children:
+  - {fileID: 5748130882449663355}
   comment: 
-  actionName: 
-  requireComponent: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35,11 +34,11 @@ MonoBehaviour:
   m_Name: WorkerBehaviour
   m_EditorClassIdentifier: 
   blackboardTemplate: {fileID: 11400000, guid: 024f8c5435ce287429b5f8f6836b0647, type: 2}
-  root: {fileID: 141845897766932815}
+  root: {fileID: -2314005741601853468}
   nodes:
-  - {fileID: 141845897766932815}
-  - {fileID: -4407063566916670517}
---- !u!114 &141845897766932815
+  - {fileID: -2314005741601853468}
+  - {fileID: 5748130882449663355}
+--- !u!114 &5748130882449663355
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -48,15 +47,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
-  m_Name: SelectorNode
-  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SelectorNode
+  m_Script: {fileID: 11500000, guid: 10f0a5e50181af146901ecbe060dceca, type: 3}
+  m_Name: DetechedObject
+  m_EditorClassIdentifier: 
   editorPosition:
     serializedVersion: 2
-    x: 362
-    y: 72
+    x: 93
+    y: 258
     width: 240
     height: 130
-  children:
-  - {fileID: -4407063566916670517}
+  children: []
   comment: 
+  actionName: 
+  requireComponent: 1
