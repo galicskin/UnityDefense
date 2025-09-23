@@ -5,12 +5,62 @@ using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
 using System;
+using System.IO;
 using System.Reflection;
 
 namespace BehaviourTreeKit.Editor
 {
-    public class BehaviourTreeEditorWindow : EditorWindow
+    // Path helpers for "<TreeName>_Nodes"
+    internal static class BTAssetPaths
     {
+        public static string GetAssetPath(UnityEngine.Object obj)
+        {
+            return AssetDatabase.GetAssetPath(obj);
+        }
+
+        public static string GetDirOf(UnityEngine.Object obj)
+        {
+            var p = GetAssetPath(obj);
+            if (string.IsNullOrEmpty(p)) return "Assets";
+            return Path.GetDirectoryName(p).Replace("\\", "/");
+        }
+
+        public static string GetTreeName(UnityEngine.Object obj)
+        {
+            var p = GetAssetPath(obj);
+            return Path.GetFileNameWithoutExtension(p);
+        }
+
+        public static string GetNodeFolderPath(UnityEngine.Object asset, string suffix = "_Nodes")
+        {
+            var baseDir = GetDirOf(asset);
+            var treeName = GetTreeName(asset);
+            return baseDir + "/" + treeName + suffix;
+        }
+
+        public static string EnsureNodeFolder(UnityEngine.Object asset, string suffix = "_Nodes")
+        {
+            var baseDir = GetDirOf(asset);
+            var treeName = GetTreeName(asset);
+            var nodeDir = baseDir + "/" + treeName + suffix;
+            if (!AssetDatabase.IsValidFolder(nodeDir))
+            {
+                AssetDatabase.CreateFolder(baseDir, treeName + suffix);
+            }
+            return nodeDir;
+        }
+
+        public static string UniqueAssetPath(string dir, string fileNameNoExt)
+        {
+            return AssetDatabase.GenerateUniqueAssetPath(dir + "/" + fileNameNoExt + ".asset");
+        }
+    }
+
+    // Behaviour Tree Editor Window
+    public partial class BehaviourTreeEditorWindow : EditorWindow
+    {
+        private static bool s_NodesDirty = false;
+
         private BTAsset _asset;
         private Vector2 _scroll;
         private Vector2 _blackboardScroll;
@@ -21,12 +71,13 @@ namespace BehaviourTreeKit.Editor
         private GUIStyle _orderLabelStyle;
 
         private const float NODE_W = 240f;
-        private const float NODE_H = 130f;   // 고정 높이
+        private const float NODE_H = 130f;
         private const float SIDEBAR_W = 320f;
 
-        // 포트 선택(입력/출력) 상태로 2-클릭 배선
         private struct PortSel { public BTNode node; public bool isOutput; }
-        private PortSel? _wiring;  // null이면 배선 아님
+        private PortSel? _wiring;
+
+        private readonly List<BTNode> _nodesCache = new();
 
         [MenuItem("Tools/Behaviour Tree Editor")]
         public static void Open()
@@ -53,40 +104,113 @@ namespace BehaviourTreeKit.Editor
             {
                 alignment = TextAnchor.MiddleLeft
             };
-            
+
+            // auto refresh hooks
+            EditorApplication.projectChanged += OnProjectChangedAuto;
+            EditorApplication.hierarchyChanged += OnProjectChangedAuto;
+            AssemblyReloadEvents.afterAssemblyReload += OnAfterAssemblyReload;
+            Undo.undoRedoPerformed += OnUndoRedo;
         }
 
-        // ───────────────────────────────────────────────────────────────────────
-        // null 안전 보정
-        private List<BTNode> SafeNodes()
+        private void OnDisable()
         {
-            if (_asset == null) return s_emptyNodes;
-            if (_asset.nodes == null) { _asset.nodes = new List<BTNode>(); EditorUtility.SetDirty(_asset); }
-            _asset.nodes.RemoveAll(n => n == null);
-            foreach (var n in _asset.nodes)
+            EditorApplication.projectChanged -= OnProjectChangedAuto;
+            EditorApplication.hierarchyChanged -= OnProjectChangedAuto;
+            AssemblyReloadEvents.afterAssemblyReload -= OnAfterAssemblyReload;
+            Undo.undoRedoPerformed -= OnUndoRedo;
+        }
+
+        private void OnFocus()
+        {
+            s_NodesDirty = true;
+        }
+
+        private void OnInspectorUpdate()
+        {
+            if (s_NodesDirty)
             {
-                if (n != null && n.children == null)
+                s_NodesDirty = false;
+                RefreshNodesFromFolder();
+                Repaint();
+            }
+        }
+
+        private void OnProjectChangedAuto()
+        {
+            s_NodesDirty = true;
+        }
+
+        private void OnAfterAssemblyReload()
+        {
+            s_NodesDirty = true;
+        }
+
+        private void OnUndoRedo()
+        {
+            s_NodesDirty = true;
+        }
+
+        // Scan nodes in folder and sync cache and _asset.nodes
+        private void RefreshNodesFromFolder()
+        {
+            _nodesCache.Clear();
+            if (_asset == null) return;
+
+            var nodeDir = BTAssetPaths.GetNodeFolderPath(_asset);
+            if (AssetDatabase.IsValidFolder(nodeDir))
+            {
+                var guids = AssetDatabase.FindAssets("t:BTNode", new[] { nodeDir });
+                foreach (var g in guids)
                 {
-                    n.children = new List<BTNode>();
-                    EditorUtility.SetDirty(n);
+                    var path = AssetDatabase.GUIDToAssetPath(g);
+                    var n = AssetDatabase.LoadAssetAtPath<BTNode>(path);
+                    if (n == null) continue;
+
+                    // ensure rect not zero
+                    if (n.editorPosition.width < 10f || n.editorPosition.height < 10f)
+                    {
+                        var pos = _scroll + new Vector2(
+                            100 + UnityEngine.Random.Range(-20, 20),
+                            100 + UnityEngine.Random.Range(-20, 20));
+                        n.editorPosition = new Rect(pos.x, pos.y, NODE_W, NODE_H);
+                        EditorUtility.SetDirty(n);
+                    }
+
+                    _nodesCache.Add(n);
                 }
             }
-            return _asset.nodes;
+
+            if (_asset.nodes == null) _asset.nodes = new List<BTNode>();
+            _asset.nodes.RemoveAll(x => x == null);
+            foreach (var n in _nodesCache)
+                if (!_asset.nodes.Contains(n)) _asset.nodes.Add(n);
+            _asset.nodes.RemoveAll(x => !_nodesCache.Contains(x));
+
+            if (_asset.root != null && !_nodesCache.Contains(_asset.root))
+                _asset.root = null;
+
+            EditorUtility.SetDirty(_asset);
         }
-        private static readonly List<BTNode> s_emptyNodes = new List<BTNode>();
+
         private static IEnumerable<BTNode> SafeChildren(BTNode n)
         {
             if (n == null || n.children == null) yield break;
             foreach (var c in n.children) if (c != null) yield return c;
         }
-        // ───────────────────────────────────────────────────────────────────────
 
-        // 포트 위치(Top=입력, Bottom=출력)
+        private float GetExtraHeight(BTNode bTNode)
+        {
+            if (bTNode is not ActionNode) return 0f;
+            ActionNode actionNode = bTNode as ActionNode;
+            return actionNode.BlackboardKeys.Count * 22f;
+        }
+
         private Vector2 GetTopPortPos(BTNode n)
         {
             var r = n.editorPosition;
             return new Vector2(r.center.x, r.yMin - 6f);
         }
+
         private Vector2 GetBottomPortPos(BTNode n)
         {
             var r = n.editorPosition;
@@ -95,10 +219,9 @@ namespace BehaviourTreeKit.Editor
 
         private BTNode GetNodeAtPosition(Vector2 p)
         {
-            var nodes = SafeNodes();
-            for (int i = nodes.Count - 1; i >= 0; --i)
+            for (int i = _nodesCache.Count - 1; i >= 0; --i)
             {
-                var n = nodes[i];
+                var n = _nodesCache[i];
                 if (n != null && n.editorPosition.Contains(p)) return n;
             }
             return null;
@@ -107,22 +230,22 @@ namespace BehaviourTreeKit.Editor
         private void OnGUI()
         {
             DrawToolbar();
+
             if (_asset == null)
             {
                 EditorGUILayout.HelpBox("Create or open a Behaviour Tree asset.", MessageType.Info);
                 return;
             }
 
-            var nodes = SafeNodes();
+            // light path: rely on auto refresh; still safe to ensure cache on first draw
+            if (_nodesCache.Count == 0) RefreshNodesFromFolder();
+            var nodes = _nodesCache;
 
-            // ── 레이아웃: 왼쪽 그래프 + 오른쪽 사이드바 ─────────────────────────
             EditorGUILayout.BeginHorizontal();
             {
-                // 왼쪽: 그래프 영역(스크롤)
                 var graphRect = GUILayoutUtility.GetRect(position.width - SIDEBAR_W, position.height - 24f);
                 _scroll = GUI.BeginScrollView(graphRect, _scroll, new Rect(0, 0, 4000, 3000));
 
-                // 1) 노드 윈도우
                 BeginWindows();
                 foreach (var n in nodes.ToArray())
                 {
@@ -135,10 +258,8 @@ namespace BehaviourTreeKit.Editor
                 }
                 EndWindows();
 
-                // 2) 연결선
                 DrawConnections(nodes);
 
-                // 3) 임시 선(포트 1회 클릭 상태)
                 if (_wiring.HasValue)
                 {
                     Handles.BeginGUI();
@@ -150,7 +271,6 @@ namespace BehaviourTreeKit.Editor
                     Repaint();
                 }
 
-                // 취소(Esc/우클릭)
                 if (_wiring.HasValue && ((Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
                     || (Event.current.type == EventType.MouseDown && Event.current.button == 1)))
                 {
@@ -159,16 +279,15 @@ namespace BehaviourTreeKit.Editor
 
                 GUI.EndScrollView();
 
-                // 오른쪽: 사이드바(Blackboard + Node Inspector)
                 EditorGUILayout.BeginVertical(GUILayout.Width(SIDEBAR_W));
                 {
                     using (var scroll = new EditorGUILayout.ScrollViewScope(
-                                  _blackboardScroll,
-                                  GUILayout.Width(SIDEBAR_W),
-                                  GUILayout.ExpandHeight(true)))   // 사이드바가 남는 높이를 다 먹게
+                               _blackboardScroll,
+                               GUILayout.Width(SIDEBAR_W),
+                               GUILayout.ExpandHeight(true)))
                     {
                         _blackboardScroll = scroll.scrollPosition;
-                        DrawBlackboardPanel();   // ← 여기서 BTAsset의 Blackboard를 연결/생성/편집
+                        DrawBlackboardPanel();
                         GUILayout.Space(6);
                         DrawInspectorPanel(nodes);
                     }
@@ -184,16 +303,55 @@ namespace BehaviourTreeKit.Editor
             }
         }
 
+        // Toolbar
         private void DrawToolbar()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+
             _asset = (BTAsset)EditorGUILayout.ObjectField(_asset, typeof(BTAsset), false, GUILayout.Width(280));
-            if (GUILayout.Button("New", EditorStyles.toolbarButton)) CreateNewAsset();
-            if (GUILayout.Button("Add Node", EditorStyles.toolbarButton)) ShowAddNodeMenu();
-            if (GUILayout.Button("Set Root: Selected", EditorStyles.toolbarButton))
+
+            if (GUILayout.Button("New", EditorStyles.toolbarButton))
+                CreateNewAsset();
+
+            using (new EditorGUI.DisabledScope(_asset == null))
             {
-                if (_selected != null) _asset.root = _selected;
+                if (GUILayout.Button("Create Node Folder", EditorStyles.toolbarButton))
+                {
+                    var nodeDir = BTAssetPaths.EnsureNodeFolder(_asset);
+                    AssetDatabase.Refresh();
+                    Debug.Log("[BT] Node folder ready: " + nodeDir);
+                    s_NodesDirty = true;
+                }
+
+                if (GUILayout.Button("Add Node", EditorStyles.toolbarButton))
+                    ShowAddNodeMenu();
+
+                if (GUILayout.Button("Open Folder", EditorStyles.toolbarButton))
+                {
+                    var nodeDir = BTAssetPaths.GetNodeFolderPath(_asset);
+                    if (AssetDatabase.IsValidFolder(nodeDir))
+                        EditorUtility.RevealInFinder(nodeDir);
+                    else
+                        EditorUtility.DisplayDialog("No Folder", "Create Node Folder first.", "OK");
+                }
+
+                if (GUILayout.Button("Refresh", EditorStyles.toolbarButton))
+                {
+                    RefreshNodesFromFolder();
+                    Repaint();
+                }
+
+                if (GUILayout.Button("Set Root: Selected", EditorStyles.toolbarButton))
+                {
+                    if (_selected != null && _nodesCache.Contains(_selected))
+                    {
+                        _asset.root = _selected;
+                        EditorUtility.SetDirty(_asset);
+                        AssetDatabase.SaveAssets();
+                    }
+                }
             }
+
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
         }
@@ -208,8 +366,10 @@ namespace BehaviourTreeKit.Editor
             AssetDatabase.CreateAsset(asset, path);
             AssetDatabase.SaveAssets();
             _asset = asset;
+            s_NodesDirty = true;
         }
 
+        // Add Node menu
         private void ShowAddNodeMenu()
         {
             if (_asset == null)
@@ -220,7 +380,6 @@ namespace BehaviourTreeKit.Editor
 
             var menu = new GenericMenu();
 
-            // ── 기본 노드 자동 등록 (BTNode 전체)
             var nodeTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a =>
                 {
@@ -229,60 +388,141 @@ namespace BehaviourTreeKit.Editor
                 })
                 .Where(t => typeof(BTNode).IsAssignableFrom(t)
                             && t.IsClass
-                            && !t.IsAbstract
-                            && !typeof(ActionNode).IsAssignableFrom(t)) // ActionNode는 제외
-                .OrderBy(t => t.Name);
+                            && !t.IsAbstract)
+                .OrderBy(t => t.Name)
+                .ToList();
 
-            // BTNode 전부 자동 등록
             foreach (var t in nodeTypes)
             {
-                menu.AddItem(new GUIContent(t.Name), false, () => CreateNode(t));
+                var display = "Create New/" + t.Name;
+                menu.AddItem(new GUIContent(display), false, () => CreateNodeAssetInFolder(t));
             }
-            //// 기본 노드
-            //void Add<T>() where T : BTNode
-            //    => menu.AddItem(new GUIContent(typeof(T).Name), false, () => CreateNode(typeof(T)));
 
-            //Add<SequenceNode>();
-            //Add<SelectorNode>();
-            //Add<InverterNode>();
-            //Add<WaitNode>();
-
-            // ActionNode 파생 자동 등록 
-            var actionTypes = BTTypeUtil.GetConcreteActionNodeTypes();
-            if (actionTypes.Count > 0)
-            {
-                menu.AddSeparator("");
-                foreach (var t in actionTypes)
-                {
-                    var path = BTTypeUtil.GetMenuPathForAction(t); // "Action/..."
-                    menu.AddItem(new GUIContent(path), false, () => CreateNode(t));
-                }
-            }
+            menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Add Selected Nodes (Move)"), false, AddSelectedNodesFromProject_Move);
+            menu.AddItem(new GUIContent("Add Selected Nodes (Duplicate)"), false, AddSelectedNodesFromProject_Duplicate);
 
             menu.ShowAsContext();
         }
 
-        private void CreateNode(Type nodeType)
+        // Create node asset in tree folder
+        private void CreateNodeAssetInFolder(Type nodeType)
         {
-            if (nodeType == null || !typeof(BTNode).IsAssignableFrom(nodeType)) return;
+            if (_asset == null || nodeType == null || !typeof(BTNode).IsAssignableFrom(nodeType)) return;
+
+            var nodeDir = BTAssetPaths.EnsureNodeFolder(_asset);
+            Undo.RegisterCompleteObjectUndo(_asset, "Create BT Node Asset");
 
             var n = ScriptableObject.CreateInstance(nodeType) as BTNode;
             n.name = nodeType.Name;
-            n.editorPosition.position = _scroll + new Vector2(
+
+            // initialize rect
+            var pos = _scroll + new Vector2(
                 100 + UnityEngine.Random.Range(-20, 20),
                 100 + UnityEngine.Random.Range(-20, 20));
+            n.editorPosition = new Rect(pos.x, pos.y, NODE_W, NODE_H);
 
-            AssetDatabase.AddObjectToAsset(n, _asset);
-            SafeNodes().Add(n);
-            if (_asset.root == null) _asset.root = n;
+            var path = BTAssetPaths.UniqueAssetPath(nodeDir, nodeType.Name);
+            AssetDatabase.CreateAsset(n, path);
 
-            AssetDatabase.SaveAssets();
+            EditorUtility.SetDirty(n);
             EditorUtility.SetDirty(_asset);
-            Selection.activeObject = n;
-            _selected = n;
-        }
-        private void CreateNode<T>() where T : BTNode => CreateNode(typeof(T));
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
 
+            _selected = n;
+            Selection.activeObject = n;
+
+            s_NodesDirty = true;
+            Repaint();
+        }
+
+        // Move selected BTNode assets into tree folder
+        private void AddSelectedNodesFromProject_Move()
+        {
+            if (_asset == null) return;
+            var nodeDir = BTAssetPaths.EnsureNodeFolder(_asset);
+
+            var selected = Selection.objects.OfType<BTNode>().ToList();
+            if (selected.Count == 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "No BTNode Selected",
+                    "Select one or more BTNode assets in the Project view.",
+                    "OK");
+                return;
+            }
+
+            Undo.RegisterCompleteObjectUndo(_asset, "Move BT Nodes To Folder");
+
+            foreach (var n in selected)
+            {
+                var srcPath = AssetDatabase.GetAssetPath(n);
+                if (string.IsNullOrEmpty(srcPath)) continue;
+
+                var dstPath = BTAssetPaths.UniqueAssetPath(nodeDir, Path.GetFileNameWithoutExtension(srcPath));
+                var result = AssetDatabase.MoveAsset(srcPath, dstPath);
+                if (!string.IsNullOrEmpty(result))
+                    Debug.LogError("[BT] Move failed: " + result);
+
+                // position and dirty
+                var pos = _scroll + new Vector2(
+                    100 + UnityEngine.Random.Range(-20, 20),
+                    100 + UnityEngine.Random.Range(-20, 20));
+                n.editorPosition = new Rect(pos.x, pos.y, NODE_W, NODE_H);
+                EditorUtility.SetDirty(n);
+            }
+
+            EditorUtility.SetDirty(_asset);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            s_NodesDirty = true;
+            Repaint();
+        }
+
+        // Duplicate selected BTNode assets into tree folder
+        private void AddSelectedNodesFromProject_Duplicate()
+        {
+            if (_asset == null) return;
+            var nodeDir = BTAssetPaths.EnsureNodeFolder(_asset);
+
+            var selected = Selection.objects.OfType<BTNode>().ToList();
+            if (selected.Count == 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "No BTNode Selected",
+                    "Select one or more BTNode assets in the Project view.",
+                    "OK");
+                return;
+            }
+
+            Undo.RegisterCompleteObjectUndo(_asset, "Duplicate BT Nodes To Folder");
+
+            foreach (var n in selected)
+            {
+                var newNode = Instantiate(n);
+                newNode.name = n.name;
+
+                var path = BTAssetPaths.UniqueAssetPath(nodeDir, newNode.name);
+                AssetDatabase.CreateAsset(newNode, path);
+
+                var pos = _scroll + new Vector2(
+                    100 + UnityEngine.Random.Range(-20, 20),
+                    100 + UnityEngine.Random.Range(-20, 20));
+                newNode.editorPosition = new Rect(pos.x, pos.y, NODE_W, NODE_H);
+                EditorUtility.SetDirty(newNode);
+            }
+
+            EditorUtility.SetDirty(_asset);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            s_NodesDirty = true;
+            Repaint();
+        }
+
+        // Draw connections
         private void DrawConnections(List<BTNode> nodes)
         {
             if (nodes == null) return;
@@ -324,7 +564,6 @@ namespace BehaviourTreeKit.Editor
 
             bool isRoot = (_asset != null && _asset.root == node);
 
-            // Root 노드면 배경 강조
             var bgColor = GUI.backgroundColor;
             if (isRoot) GUI.backgroundColor = new Color(1.0f, 1.8f, 0.2f);
             GUI.Box(new Rect(0, 0, w, h), GUIContent.none, _nodeStyle);
@@ -343,7 +582,6 @@ namespace BehaviourTreeKit.Editor
                 GUIUtility.ExitGUI();
             }
 
-            // 포트 (Top=입력, Bottom=출력)
             var portSize = 20f;
             var topRect = new Rect((w - portSize) * 0.5f, 0, portSize, portSize);
             var bottomRect = new Rect((w - portSize) * 0.5f, h - portSize, portSize, portSize);
@@ -354,7 +592,6 @@ namespace BehaviourTreeKit.Editor
             if (GUI.Button(topRect, "c", _portStyle)) HandlePortClick(node, isOutput: false);
             if (GUI.Button(bottomRect, "p", _portStyle)) HandlePortClick(node, isOutput: true);
 
-            // 부모에서 내 순서를 찾아 숫자 + < > 버튼 표시
             var parent = FindParentOf(node);
             if (parent != null && parent.children != null)
             {
@@ -362,7 +599,7 @@ namespace BehaviourTreeKit.Editor
                 if (idx >= 0)
                 {
                     float pad = 4f;
-                    var labelRect = new Rect(topRect.xMax + pad, 26f, 60f, topRect.height);
+                    var labelRect = new Rect(topRect.xMax + pad, 26f, 80f, topRect.height);
                     GUI.Label(labelRect, " order : " + (idx + 1).ToString(), _orderLabelStyle);
 
                     var leftRect = new Rect(labelRect.xMax + 2f, 26f, 20f, topRect.height);
@@ -372,31 +609,28 @@ namespace BehaviourTreeKit.Editor
                     if (GUI.Button(rightRect, ">")) MoveChildOrder(node, toFront: false);
                 }
             }
-            
+
             if (node is ActionNode)
             {
                 float heightInterval = 22f;
-                Rect infoRect = new Rect(8, 48 + heightInterval, 60f , 22);
+                Rect infoRect = new Rect(8, 48 + heightInterval, 60f, 22);
                 ActionNode actionNode = node as ActionNode;
 
-
-                // 루프가 끝난 후, 설정될 데이터
-                Dictionary<(string,BlackboardKey.ValueType) ,BlackboardKey> changedBlackboardKeys = new();
-
+                Dictionary<(string, BlackboardKey.ValueType), BlackboardKey> changedBlackboardKeys = new();
 
                 foreach (var blackboardKey in actionNode.BlackboardKeys)
                 {
                     string fieldName = blackboardKey.Key.Item1;
                     BlackboardKey.ValueType valueType = blackboardKey.Key.Item2;
 
-                    infoRect.width = fieldName.Length*7f;
-                    
+                    infoRect.width = fieldName.Length * 7f;
                     GUI.Label(infoRect, fieldName);
 
-
-                    var valueKeyList = _asset.blackboardTemplate.GetKeyList(valueType);
+                    var valueKeyList = _asset.blackboardTemplate != null
+                        ? _asset.blackboardTemplate.GetKeyList(valueType)
+                        : new List<string>();
                     string[] displayOptions = valueKeyList.ToArray();
-                    
+
                     int curIndex;
                     if (blackboardKey.Value == null)
                     {
@@ -404,44 +638,43 @@ namespace BehaviourTreeKit.Editor
                     }
                     else
                     {
-                        // 할당이 된 상태라면
-                        BlackboardKey selectedBlackboardKey = _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardKey.Value.key);
-                        if (selectedBlackboardKey == actionNode.BlackboardKeys[blackboardKey.Key])  // ref 비교라서 원본껄 가져와야함.
+                        BlackboardKey selectedBlackboardKey =
+                            _asset.blackboardTemplate != null
+                                ? _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardKey.Value.key)
+                                : null;
+
+                        if (selectedBlackboardKey == actionNode.BlackboardKeys[blackboardKey.Key])
                             curIndex = valueKeyList.IndexOf(blackboardKey.Value.key);
                         else
-                        {
-                            //actionNode.BlackboardKeys[blackboardKey.Key] = null;
                             curIndex = -1;
-                        }
                     }
 
                     curIndex = EditorGUI.Popup(
                         new Rect(w - 68f, infoRect.y, 60f, 22f),
-                        curIndex,        // 현재 선택값
-                        displayOptions        // 표시할 문자열 배열
+                        curIndex,
+                        displayOptions
                     );
                     infoRect.y += heightInterval;
 
                     if (curIndex == -1)
                     {
-                        changedBlackboardKeys[(fieldName,valueType)] = null;
+                        changedBlackboardKeys[(fieldName, valueType)] = null;
                         continue;
                     }
 
                     var blackboardFieldName = displayOptions[curIndex];
-                    changedBlackboardKeys[(fieldName, valueType)] = _asset.blackboardTemplate.GetRefBlackboardKey(valueType,blackboardFieldName);
-
+                    changedBlackboardKeys[(fieldName, valueType)] =
+                        _asset.blackboardTemplate != null
+                        ? _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardFieldName)
+                        : null;
                 }
 
                 foreach (var changedBlackboardKey in changedBlackboardKeys)
                 {
                     actionNode.BlackboardKeys[changedBlackboardKey.Key] = changedBlackboardKey.Value;
                 }
-
-
             }
 
-            // 창 드래그
             GUI.DragWindow(new Rect(0, 0, 10000, 20));
         }
 
@@ -455,13 +688,9 @@ namespace BehaviourTreeKit.Editor
 
             var from = _wiring.Value;
 
-            // 동일 포트 재클릭 → 취소
             if (from.node == node && from.isOutput == isOutput) { _wiring = null; Repaint(); return; }
-
-            // 입력↔출력이 아니면 취소
             if (from.isOutput == isOutput) { _wiring = null; Repaint(); return; }
 
-            // 부모→자식 결정 (출력→입력 방향)
             BTNode parent, child;
             if (from.isOutput) { parent = from.node; child = node; }
             else { parent = node; child = from.node; }
@@ -481,6 +710,7 @@ namespace BehaviourTreeKit.Editor
 
             if (!parent.children.Contains(child))
             {
+                Undo.RegisterCompleteObjectUndo(parent, "Connect BT Child");
                 parent.children.Add(child);
                 EditorUtility.SetDirty(parent);
                 EditorUtility.SetDirty(_asset);
@@ -504,8 +734,7 @@ namespace BehaviourTreeKit.Editor
         private BTNode FindParentOf(BTNode child)
         {
             if (child == null) return null;
-            var nodes = SafeNodes();
-            foreach (var p in nodes)
+            foreach (var p in _nodesCache)
             {
                 if (p == null || p.children == null) continue;
                 if (p.children.Contains(child)) return p;
@@ -513,30 +742,70 @@ namespace BehaviourTreeKit.Editor
             return null;
         }
 
+        private void MoveChildOrder(BTNode child, bool toFront)
+        {
+            var parent = FindParentOf(child);
+            if (parent == null || parent.children == null) return;
+
+            int idx = parent.children.IndexOf(child);
+            if (idx < 0) return;
+
+            Undo.RegisterCompleteObjectUndo(parent, "Reorder BT Child");
+
+            parent.children.RemoveAt(idx);
+
+            if (toFront)
+                parent.children.Insert(Mathf.Max(0, idx - 1), child);
+            else
+                parent.children.Insert(Mathf.Min(parent.children.Count, idx + 1), child);
+
+            EditorUtility.SetDirty(parent);
+            EditorUtility.SetDirty(_asset);
+            AssetDatabase.SaveAssets();
+            Repaint();
+        }
+
         private void RemoveNode(BTNode node)
         {
-            var nodes = SafeNodes();
-            if (node == null) return;
+            if (node == null || _asset == null) return;
 
-            if (_selected == node) _selected = null;
-            if (_wiring.HasValue && _wiring.Value.node == node) _wiring = null;
+            var nodes = _nodesCache;
+
+            Undo.RegisterCompleteObjectUndo(_asset, "Remove BT Node");
 
             foreach (var n in nodes)
             {
                 if (n == null || n.children == null) continue;
-                n.children.RemoveAll(c => c == null || c == node);
-                EditorUtility.SetDirty(n);
+                if (n.children.Contains(node))
+                {
+                    Undo.RegisterCompleteObjectUndo(n, "Disconnect BT Child");
+                    n.children.RemoveAll(c => c == null || c == node);
+                    EditorUtility.SetDirty(n);
+                }
             }
 
-            nodes.Remove(node);
-            if (_asset.root == node) _asset.root = nodes.FirstOrDefault();
+            if (_asset.root == node) _asset.root = null;
 
-            DestroyImmediate(node, true);
+            var path = AssetDatabase.GetAssetPath(node);
+            if (!string.IsNullOrEmpty(path))
+            {
+                AssetDatabase.DeleteAsset(path);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(node, true);
+            }
+
+            EditorUtility.SetDirty(_asset);
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            s_NodesDirty = true;
+
+            _selected = null;
+            Selection.activeObject = _asset;
         }
 
-        // ───────────────────────────────────────────────────────────────────────
-        // Blackboard 패널 (한 세트처럼 연결/편집)
         private void DrawBlackboardPanel()
         {
             using (new GUILayout.VerticalScope("box"))
@@ -565,12 +834,10 @@ namespace BehaviourTreeKit.Editor
                 GUILayout.FlexibleSpace();
                 EditorGUILayout.EndHorizontal();
 
-                // 인라인 편집
                 if (_asset.blackboardTemplate != null)
                 {
                     var soBB = new SerializedObject(_asset.blackboardTemplate);
                     soBB.Update();
-
                     var entriesProp = soBB.FindProperty("entries");
                     if (entriesProp != null)
                     {
@@ -588,11 +855,12 @@ namespace BehaviourTreeKit.Editor
         private void CreateEmbeddedBlackboard()
         {
             if (_asset == null) return;
-
-            if (_asset.blackboardTemplate != null) return; // 이미 있음
+            if (_asset.blackboardTemplate != null) return;
 
             var bb = ScriptableObject.CreateInstance<Blackboard>();
             bb.name = "Blackboard";
+
+            // Note: we allow Blackboard as sub-asset; nodes are not embedded
             AssetDatabase.AddObjectToAsset(bb, _asset);
             _asset.blackboardTemplate = bb;
 
@@ -601,7 +869,6 @@ namespace BehaviourTreeKit.Editor
             AssetDatabase.SaveAssets();
             Repaint();
         }
-        // ───────────────────────────────────────────────────────────────────────
 
         private void DrawInspectorPanel(List<BTNode> nodes)
         {
@@ -630,37 +897,38 @@ namespace BehaviourTreeKit.Editor
             }
         }
 
-        private void MoveChildOrder(BTNode child, bool toFront)
+        // helper for assetpostprocessor
+        internal static void MarkNodesDirty() { s_NodesDirty = true; }
+    }
+
+    // asset postprocessor to auto refresh when BTNode assets change
+    class BTNodeFolderWatcher : AssetPostprocessor
+    {
+        static void OnPostprocessAllAssets(
+            string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
+            string[] movedFromAssetPaths)
         {
-            var parent = FindParentOf(child);
-            if (parent == null || parent.children == null) return;
+            bool any = false;
 
-            int idx = parent.children.IndexOf(child);
-            if (idx < 0) return;
+            bool HasBTNode(string path)
+            {
+                if (string.IsNullOrEmpty(path)) return false;
+                var obj = AssetDatabase.LoadAssetAtPath<BTNode>(path);
+                return obj != null;
+            }
 
-            parent.children.RemoveAt(idx);
+            foreach (var p in importedAssets) { if (HasBTNode(p)) { any = true; break; } }
+            if (!any) foreach (var p in deletedAssets) { if (p.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)) { any = true; break; } }
+            if (!any) foreach (var p in movedAssets) { if (HasBTNode(p)) { any = true; break; } }
+            if (!any) foreach (var p in movedFromAssetPaths) { if (p.EndsWith(".asset", StringComparison.OrdinalIgnoreCase)) { any = true; break; } }
 
-            if (toFront)
-                parent.children.Insert(Mathf.Max(0, idx - 1), child);
-            else
-                parent.children.Insert(Mathf.Min(parent.children.Count, idx + 1), child);
-
-            EditorUtility.SetDirty(parent);
-            EditorUtility.SetDirty(_asset);
-            AssetDatabase.SaveAssets();
-            Repaint();
+            if (any && EditorWindow.HasOpenInstances<BehaviourTreeKit.Editor.BehaviourTreeEditorWindow>())
+            {
+                BehaviourTreeKit.Editor.BehaviourTreeEditorWindow.MarkNodesDirty();
+            }
         }
-
-        private float GetExtraHeight(BTNode bTNode)
-        {
-            if (bTNode is not ActionNode)
-                return 0f;
-
-            ActionNode actionNode = bTNode as ActionNode;
-
-            return actionNode.BlackboardKeys.Count * 22f;
-        }
-
     }
 }
 #endif

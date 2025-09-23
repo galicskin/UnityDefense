@@ -30,7 +30,8 @@ namespace BehaviourTreeKit
         public virtual IEnumerable<BTNode> GetChildren() => children;
         public virtual void AddChild(BTNode node)
         {
-            if (!children.Contains(node)) children.Add(node);
+            if (node == null) return;
+            children.Add(node);
         }
         public virtual void RemoveChild(BTNode node)
         {
@@ -45,51 +46,6 @@ namespace BehaviourTreeKit
         {
             base.OnEnter(ctx);
             _currentIndex = 0;
-        }
-    }
-
-    [CreateAssetMenu(menuName = "BehaviourTree/Nodes/Sequence", fileName = "Sequence")]
-    public class SequenceNode : CompositeNode
-    {
-        public override BTState Tick(BTContext ctx)
-        {
-            while (_currentIndex < children.Count)
-            {
-                var child = children[_currentIndex];
-                var state = child.Tick(ctx);
-                if (state == BTState.Running) return BTState.Running;
-                if (state == BTState.Failure)
-                {
-                    // reset when leaving
-                    _currentIndex = 0;
-                    return BTState.Failure;
-                }
-                _currentIndex++;
-            }
-            _currentIndex = 0;
-            return BTState.Success;
-        }
-    }
-
-    [CreateAssetMenu(menuName = "BehaviourTree/Nodes/Selector", fileName = "Selector")]
-    public class SelectorNode : CompositeNode
-    {
-        public override BTState Tick(BTContext ctx)
-        {
-            while (_currentIndex < children.Count)
-            {
-                var child = children[_currentIndex];
-                var state = child.Tick(ctx);
-                if (state == BTState.Running) return BTState.Running;
-                if (state == BTState.Success)
-                {
-                    _currentIndex = 0;
-                    return BTState.Success;
-                }
-                _currentIndex++;
-            }
-            _currentIndex = 0;
-            return BTState.Failure;
         }
     }
 

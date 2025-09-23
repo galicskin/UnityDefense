@@ -1,27 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-4407063566916670517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10f0a5e50181af146901ecbe060dceca, type: 3}
-  m_Name: DetechedObject
-  m_EditorClassIdentifier: 
-  editorPosition:
-    serializedVersion: 2
-    x: 190
-    y: 297
-    width: 240
-    height: 130
-  children: []
-  comment: 
-  actionName: 
-  requireComponent: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -35,13 +13,12 @@ MonoBehaviour:
   m_Name: WorkerBehaviour
   m_EditorClassIdentifier: 
   blackboardTemplate: {fileID: 11400000, guid: 024f8c5435ce287429b5f8f6836b0647, type: 2}
-  root: {fileID: 141845897766932815}
+  root: {fileID: 0}
   nodes:
-  - {fileID: 141845897766932815}
-  - {fileID: -4407063566916670517}
---- !u!114 &141845897766932815
+  - {fileID: 11400000, guid: 4736cf96416ace947aabec497e7fac90, type: 2}
+--- !u!114 &3502451598860528159
 MonoBehaviour:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -49,14 +26,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: SelectorNode
-  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SelectorNode
+  m_Name: SequenceNode
+  m_EditorClassIdentifier: Assembly-CSharp:BehaviourTreeKit:SequenceNode
   editorPosition:
     serializedVersion: 2
-    x: 362
-    y: 72
+    x: 113
+    y: 103
     width: 240
     height: 130
   children:
-  - {fileID: -4407063566916670517}
+  - {fileID: 9140557322208676526}
   comment: 
+--- !u!114 &9140557322208676526
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10f0a5e50181af146901ecbe060dceca, type: 3}
+  m_Name: DetechedObject
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 101
+    y: 303
+    width: 240
+    height: 130
+  children: []
+  comment: 
+  actionName: 
+  requireComponent: 1

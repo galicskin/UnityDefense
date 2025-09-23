@@ -8,10 +8,9 @@ namespace BehaviourTreeKit
     public class BTAsset : ScriptableObject
     {
         public Blackboard blackboardTemplate;
-        public BTNode root;
-#if UNITY_EDITOR
-        [HideInInspector] public List<BTNode> nodes = new();
-#endif
+        [SerializeField] public BTNode root;
+        [SerializeField, HideInInspector] public List<BTNode> nodes = new();
+
 
 
         /// <summary>
