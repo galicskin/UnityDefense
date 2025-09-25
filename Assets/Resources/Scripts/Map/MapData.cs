@@ -54,6 +54,6 @@ public class MapData : ScriptableObject
 
     // MapStartPoint = 0,0 block Location
     public Vector3 MapStartPoint = Vector3.zero;
-    public float BlockUnit = 1.0f;
+    public float BlockUnit = MapSettings.bloackUnitSize;
 
 }

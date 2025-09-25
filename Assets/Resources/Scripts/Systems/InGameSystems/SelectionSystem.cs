@@ -62,7 +62,7 @@ public sealed class SelectionSystem : SystemBase
             current.OnDeselected();
 
         current = next;
-
+        
         if (current != null)
         {
             current.OnSelected();

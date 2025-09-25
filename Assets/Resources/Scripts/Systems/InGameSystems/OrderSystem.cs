@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,6 +13,70 @@ public enum OrderType
     Return,     // 본진 복귀
     // 추후 필요시 추가
 }
+
+
+public abstract class OrderClass 
+{
+    public OrderType OrderType;
+}
+
+public class MineOrder : OrderClass
+{
+    public GameObject TargetWall;
+    
+    public MineOrder(GameObject targetWall)
+    {
+        OrderType = OrderType.Mine;
+        TargetWall = targetWall;
+    }
+}
+
+public class CarryOrder : OrderClass
+{
+    GameObject TargetMineral;
+    GameObject BaseCenter;
+    public CarryOrder(GameObject targetMineral, GameObject baseCenter)
+    {
+        OrderType = OrderType.Carry;
+        TargetMineral = targetMineral;
+        BaseCenter = baseCenter;
+    }
+}
+
+public class FightOrder : OrderClass
+{
+    GameObject Enemy;
+    public FightOrder(GameObject enemy)
+    {
+        OrderType = OrderType.Fight;
+        Enemy = enemy;
+
+    }
+}
+
+public class MoveOrder : OrderClass
+{
+    Transform Destination;
+    public MoveOrder(Transform destination)
+    {
+        OrderType = OrderType.Move;
+        Destination = destination;
+
+    }
+}
+
+public class ReturnOrder : OrderClass
+{
+    GameObject BaseCenter;
+    public ReturnOrder(GameObject baseCenter)
+    {
+        OrderType = OrderType.Return;
+        BaseCenter = baseCenter;
+
+    }
+}
+
+
 public class Order
 {
     public OrderType Type { get; private set; }
@@ -31,14 +96,15 @@ public class Order
 public class OrderSystem : SystemBase
 {
     private List<Worker> workers = new List<Worker>();
-
     private WorkersManageSystem WorkersManager;
+    [SerializeField] private OrderUI orderUI;
 
     public void Start()
     {
         WorkersManager = GameSystemManager.Instance?.GetSystem<WorkersManageSystem>();
         if (!WorkersManager)
             Debug.Log("WorkersManager not exist");
+
     }
 
     // 새 명령 등록
@@ -46,6 +112,11 @@ public class OrderSystem : SystemBase
     {
         Worker worker = WorkersManager.FindLeastBusyWorker();
         worker.ReceiveNormalOrder(order);
+    }
+
+    public void SetOrderButton(int buttonNumber, Action action)
+    {
+        orderUI.SetButton(buttonNumber, action);
     }
 
 }

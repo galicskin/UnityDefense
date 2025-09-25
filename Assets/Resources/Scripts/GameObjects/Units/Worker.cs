@@ -16,10 +16,12 @@ public class Worker : PooledObject, ISelectable
 
     public BehaviourTreeRunner behaviourTreeRunner;
 
-    // 내부 검색용(정렬 캐시)
-    [System.NonSerialized] public float __lastDist2;
-
     private WorkersManageSystem _manager;
+    private OrderSystem _order;
+
+    // 이부분에 이제 Worker들이 가져야할 뭐.. 장비, 탈것 등.. 에 대한 특정 프로퍼티가 생성될것 일단 테스트용
+    public float workEfficiency = 30.0f;
+
     private WorkersManageSystem Manager
     {
         get
@@ -121,6 +123,15 @@ public class Worker : PooledObject, ISelectable
     void ISelectable.OnSelected()
     {
         Debug.Log($"{name} 선택됨");
+        if(_order == null)
+            _order = GameSystemManager.Instance.GetSystem<OrderSystem>();
+        _order.SetOrderButton(0,
+            () =>
+            {
+                //currentOrder
+                Debug.Log(" 오더버튼 활성화 : 1번 ");
+            }
+            );
         // TODO: 아웃라인 표시 or UI 갱신
     }
 

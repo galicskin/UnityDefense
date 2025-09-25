@@ -16,8 +16,9 @@ public enum OreType
 public class DropRule
 {
     public OreType oreType = OreType.None;
-    [Min(0)] public int minCount = 0;             // 최소 보장 수량
-    [Range(0f, 1f)] public float dropRate = 0.0f;   // 확률(추가 드랍용)
+    [Min(0)] public int CollapseDropCount = 0;          // 무너질때 생기는 광물
+    [Min(0)] public int bonusDropMinCount = 0;          // 최소 보너스 수량 : 
+    [Range(0f, 1f)] public float bonusDropRate = 0.0f;   // 확률(추가 드랍용)
 }
 
 [System.Serializable]
@@ -38,6 +39,7 @@ public class BlockProp   // <-- struct 대신 class 권장
 [CreateAssetMenu(menuName = "Scriptable Object/MapBlockData", fileName = "MapBlockData")]
 public class MapBlockData : ScriptableObject
 {
+
     [Tooltip("displayName은 수정 가능, id는 내부에서 자동 생성되는 고유 키입니다.")]
     public List<BlockProp> BlockProperties = new List<BlockProp>();
 
