@@ -1,5 +1,38 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4426807055235628962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d43e5b4f4878b543a3e42885f95fce2, type: 3}
+  m_Name: MoveNode
+  m_EditorClassIdentifier: 
+  editorPosition:
+    serializedVersion: 2
+    x: 382
+    y: 262
+    width: 240
+    height: 152
+  children: []
+  comment: 
+  actionName: 
+  requireComponent: 1
+  ActionNodeSerializedKeys:
+  - PropertyName: Destination
+    PropertyType: 3
+    BlackboardKeyRef:
+      key: TestDest
+      type: 3
+      boolValue: 0
+      intValue: 0
+      floatValue: 0
+      vector3Value: {x: 0, y: 0, z: 0}
+      objectValue: {fileID: 0}
 --- !u!114 &-2314005741601853468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20,6 +53,7 @@ MonoBehaviour:
     height: 130
   children:
   - {fileID: 5748130882449663355}
+  - {fileID: -4426807055235628962}
   comment: 
 --- !u!114 &11400000
 MonoBehaviour:
@@ -38,6 +72,7 @@ MonoBehaviour:
   nodes:
   - {fileID: -2314005741601853468}
   - {fileID: 5748130882449663355}
+  - {fileID: -4426807055235628962}
 --- !u!114 &5748130882449663355
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60,3 +95,4 @@ MonoBehaviour:
   comment: 
   actionName: 
   requireComponent: 1
+  ActionNodeSerializedKeys: []

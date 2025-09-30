@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using BehaviourTreeKit;
-public class Worker : PooledObject, ISelectable
+
+
+[RequireComponent(typeof(NavMeshAgent))]
+public class Worker : PooledObject, ISelectable,IMoveable
 {
     //private NavMeshAgent agent;
     //private Animator animator;
@@ -33,7 +36,11 @@ public class Worker : PooledObject, ISelectable
     }
     private void Awake()
     {
-        //agent = GetComponent<NavMeshAgent>();
+        navAgent = GetComponent<NavMeshAgent>();
+        if (navAgent == null)
+        {
+            Debug.LogError("NavMeshAgent가 없음!");
+        }
         //agent = GetComponent<NavMeshAgent>();
         //animator = GetComponentInChildren<Animator>();
         if (behaviourTreeRunner == null)
@@ -42,6 +49,7 @@ public class Worker : PooledObject, ISelectable
             behaviourTreeRunner.treeAsset = Resources.Load<BTAsset>("BehaviourTreeData/WorkerBehaviour");
 
         }
+
         behaviourTreeRunner.autoRun = false;
     }
 
@@ -101,6 +109,9 @@ public class Worker : PooledObject, ISelectable
     public void MarkIdle() => Manager.SetState(this, WorkerState.Idle);
 
 
+
+    public NavMeshAgent navAgent { get; private set; }
+
     Transform ISelectable.Transform
     {
         get { return this.transform; }
@@ -120,6 +131,7 @@ public class Worker : PooledObject, ISelectable
         }
     }
 
+    public bool TestBool = false;
     void ISelectable.OnSelected()
     {
         Debug.Log($"{name} 선택됨");
@@ -128,6 +140,7 @@ public class Worker : PooledObject, ISelectable
         _order.SetOrderButton(0,
             () =>
             {
+                TestBool = true;
                 //currentOrder
                 Debug.Log(" 오더버튼 활성화 : 1번 ");
             }
@@ -166,11 +179,11 @@ public class Worker : PooledObject, ISelectable
     // ========== 2) 매 프레임 실행(세부 이동/행동) ==========
     void Update()
     {
-        if (currentOrder == null || currentOrder.Type == OrderType.None)
-        {
-            State = WorkerState.Idle;
-            return;
-        }
+        //if (currentOrder == null || currentOrder.Type == OrderType.None)
+        //{
+        //    State = WorkerState.Idle;
+        //    return;
+        //}
 
         behaviourTreeRunner.Tick(Time.deltaTime);
     }

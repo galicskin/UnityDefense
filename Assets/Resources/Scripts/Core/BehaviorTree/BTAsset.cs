@@ -50,6 +50,10 @@ namespace BehaviourTreeKit
                 clone.hideFlags = HideFlags.DontSave;
                 clone.children = new List<BTNode>();
                 map[n] = clone;
+
+                if (n is ActionNode)
+                    (n as ActionNode).BuildBlackboardKeys();
+
                 foreach (var c in n.children)
                 {
                     var c2 = CloneRecursive(c);

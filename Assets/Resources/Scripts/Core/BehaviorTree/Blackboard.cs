@@ -78,11 +78,29 @@ namespace BehaviourTreeKit
         public bool TryGet<T>(string key, out T value)
         {
             value = default;
-            var e = FindEntry(key);
-            if (e == null) return false;
 
-            if (!TypeMap.TryGetValue(typeof(T), out var vt)) return false;
-            if (e.type != vt) return false;
+            foreach (var entry in entries)
+            {
+                Debug.Log($"{entry.key} : {entry.type}");
+            }
+
+            var e = FindEntry(key);
+            if (e == null)
+            {
+                Debug.Log($"TryGet에서 FindEntry 부분 실패");
+                return false;
+            }
+
+            if (!TypeMap.TryGetValue(typeof(T), out var vt))
+            {
+                Debug.Log($"TypeMap.TryGetValue 에서 vt 받아오기 실패");
+                return false;
+            }
+            if (e.type != vt)
+            {
+                Debug.Log($"(e.type == vt");
+                return false;
+            }
 
             object boxed = null;
             switch (e.type)
@@ -92,14 +110,18 @@ namespace BehaviourTreeKit
                 case BlackboardKey.ValueType.Float: boxed = e.floatValue; break;
                 case BlackboardKey.ValueType.Vector3: boxed = e.vector3Value; break;
                 case BlackboardKey.ValueType.Object: boxed = e.objectValue; break;
-                default: return false;
+                default:
+                    Debug.Log($"{e.type} 이 default로 들어감");
+                    return false;
             }
 
             if (boxed is T t)
             {
+                Debug.Log("boxed is T t 성공");
                 value = t;
                 return true;
             }
+            Debug.Log($"boxed is T t 실패 ");
             return false;
         }
 

@@ -12,4 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7d9a734f4de5fa489d66a1b09702f8f, type: 3}
   m_Name: WorkerBlackboard
   m_EditorClassIdentifier: 
-  entries: []
+  entries:
+  - key: TestDest
+    type: 3
+    boolValue: 0
+    intValue: 0
+    floatValue: 0
+    vector3Value: {x: 0, y: 0, z: 0}
+    objectValue: {fileID: 0}

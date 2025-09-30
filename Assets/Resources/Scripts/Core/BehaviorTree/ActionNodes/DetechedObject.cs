@@ -4,12 +4,23 @@ using UnityEngine;
 using BehaviourTreeKit;
 public class DetechedObject : ActionNode
 {
-    public override Dictionary<(string, BlackboardKey.ValueType), BlackboardKey> BlackboardKeys { get; set; }
-    = new();
+
+    public override void BuildBlackboardKeys()
+    {
+        
+    }
 
     public override BTState Tick(BTContext ctx)
     {
-        Debug.Log("Detect Object");
+        // test
+        Worker worker = ctx.GetService<Worker>();
+        Debug.Log(worker.TestBool);
+        if (worker.TestBool)
+        {
+            Debug.Log("test ¼º°ø");
+            return BTState.Success;
+        }
+
         return BTState.Failure;
     }
 }

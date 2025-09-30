@@ -381,38 +381,31 @@ namespace BehaviourTreeKit.Editor
 
 
                 // 루프가 끝난 후, 설정될 데이터
-                Dictionary<(string,BlackboardKey.ValueType) ,BlackboardKey> changedBlackboardKeys = new();
+                Dictionary<string,BlackboardKey> changeListNames = new();
 
 
-                foreach (var blackboardKey in actionNode.BlackboardKeys)
+                foreach (var actionNodeKeys in actionNode.ActionNodeSerializedKeys)
                 {
-                    string fieldName = blackboardKey.Key.Item1;
-                    BlackboardKey.ValueType valueType = blackboardKey.Key.Item2;
+                    //Debug.Log($"{actionNodeKeys.PropertyName} : ");
+                    string actionNodePropertyName = actionNodeKeys.PropertyName;
+                    BlackboardKey.ValueType valueType = actionNodeKeys.PropertyType;
 
-                    infoRect.width = fieldName.Length*7f;
+                    infoRect.width = actionNodePropertyName.Length*7f;
                     
-                    GUI.Label(infoRect, fieldName);
+                    GUI.Label(infoRect, actionNodePropertyName);
 
 
-                    var valueKeyList = _asset.blackboardTemplate.GetKeyList(valueType);
-                    string[] displayOptions = valueKeyList.ToArray();
+                    var blakcboardKeyListInValueType = _asset.blackboardTemplate.GetKeyList(valueType);
+                    string[] displayOptions = blakcboardKeyListInValueType.ToArray();
                     
                     int curIndex;
-                    if (blackboardKey.Value == null)
+                    if (actionNodeKeys.BlackboardKeyRef == null)
                     {
                         curIndex = -1;
                     }
                     else
                     {
-                        // 할당이 된 상태라면
-                        BlackboardKey selectedBlackboardKey = _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardKey.Value.key);
-                        if (selectedBlackboardKey == actionNode.BlackboardKeys[blackboardKey.Key])  // ref 비교라서 원본껄 가져와야함.
-                            curIndex = valueKeyList.IndexOf(blackboardKey.Value.key);
-                        else
-                        {
-                            //actionNode.BlackboardKeys[blackboardKey.Key] = null;
-                            curIndex = -1;
-                        }
+                        curIndex = blakcboardKeyListInValueType.IndexOf(actionNodeKeys.BlackboardKeyRef.key);
                     }
 
                     curIndex = EditorGUI.Popup(
@@ -424,21 +417,17 @@ namespace BehaviourTreeKit.Editor
 
                     if (curIndex == -1)
                     {
-                        changedBlackboardKeys[(fieldName,valueType)] = null;
                         continue;
                     }
 
                     var blackboardFieldName = displayOptions[curIndex];
-                    changedBlackboardKeys[(fieldName, valueType)] = _asset.blackboardTemplate.GetRefBlackboardKey(valueType,blackboardFieldName);
-
+                    //changeList.Add(new BBKeyRef(actionNodePropertyName, valueType, _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardFieldName)));
+                    changeListNames.Add(actionNodePropertyName, _asset.blackboardTemplate.GetRefBlackboardKey(valueType, blackboardFieldName));
                 }
-
-                foreach (var changedBlackboardKey in changedBlackboardKeys)
-                {
-                    actionNode.BlackboardKeys[changedBlackboardKey.Key] = changedBlackboardKey.Value;
+                foreach (var item in changeListNames)
+                { 
+                    actionNode.ChangeBlackboardKey(item.Key,item.Value.type,item.Value);
                 }
-
-
             }
 
             // 창 드래그
@@ -570,13 +559,17 @@ namespace BehaviourTreeKit.Editor
                 {
                     var soBB = new SerializedObject(_asset.blackboardTemplate);
                     soBB.Update();
+                    EditorGUIUtility.wideMode = true;
 
                     var entriesProp = soBB.FindProperty("entries");
                     if (entriesProp != null)
                     {
                         EditorGUILayout.PropertyField(entriesProp, true);
                     }
+
                     soBB.ApplyModifiedProperties();
+
+                    EditorGUIUtility.wideMode = false;
                 }
                 else
                 {
@@ -657,8 +650,8 @@ namespace BehaviourTreeKit.Editor
                 return 0f;
 
             ActionNode actionNode = bTNode as ActionNode;
-
-            return actionNode.BlackboardKeys.Count * 22f;
+            //Debug.Log($"{actionNode.name} : {actionNode.ActionNodeSerializedKeys.Count}");
+            return actionNode.ActionNodeSerializedKeys.Count * 22f;
         }
 
     }

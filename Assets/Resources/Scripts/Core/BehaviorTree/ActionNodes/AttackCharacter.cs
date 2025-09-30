@@ -4,8 +4,11 @@ using UnityEngine;
 using BehaviourTreeKit;
 public class AttackCharacter : ActionNode
 {
-    public override Dictionary<(string, BlackboardKey.ValueType), BlackboardKey> BlackboardKeys { get; set; }
-    = new();
+    
+    public override void BuildBlackboardKeys()
+    {
+        
+    }
 
     public override BTState Tick(BTContext ctx)
     {
