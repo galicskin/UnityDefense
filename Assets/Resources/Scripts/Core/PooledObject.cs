@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class PooledObject : MonoBehaviour
 {
+
+
     // PoolManager가 주입해주는 반환 콜백
     public Action<GameObject> ReturnToPool;
 

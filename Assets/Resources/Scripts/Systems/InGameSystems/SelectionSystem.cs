@@ -19,31 +19,56 @@ public sealed class SelectionSystem : SystemBase
     [SerializeField, Min(0.1f)] private float ringRadius = 0.8f;    // 미터 기준
     [SerializeField, Min(0.05f)] private float projectorDepth = 1.0f;
 
-
+    [Header("HighLight Color")]
+    [SerializeField] Color HighlightColor = new Color(0f,125f,0f,0.5f);
     private ISelectable current;
-    private DecalProjector sharedProjector; // 공용 1개
+    private PooledBehaviour<DecalProjector> sharedProjectorPool; // 공용 1개에서 여러개로...
+    private Dictionary<ISelectable, DecalProjector> selectedRings;
+    private Dictionary<ISelectable, bool> selectedBools;
+
 
     [Header("선택 링 크기 조절")]
     [SerializeField] float autoPaddingPercent = 0.5f;
     //[SerializeField, Min(0.05f)] private float projectorDepthPercent = 0.3f;
+
+    enum SelectMode
+    {
+        Single = 0,
+        Multiple = 1,
+
+    }
+    SelectMode selectMode = SelectMode.Single;
     private void Awake()
     {
         if (!mainCamera) mainCamera = Camera.main;
+        selectedRings = new Dictionary<ISelectable, DecalProjector>();
+        selectedBools = new Dictionary<ISelectable, bool>();
         PrewarmSharedProjector();
     }
 
     private void Update()
     {
         if (Input.GetMouseButtonDown(0))
-            TrySelectAt(Input.mousePosition);
+        {
+            switch (selectMode)
+            {
+                case SelectMode.Single:
+                    ClickSelectSingle(Input.mousePosition); // 단일 교체 선택
+                    break;
 
-        // 선택 대상이 파괴되면 자동 해제
+                case SelectMode.Multiple:
+                    ClickSelectMultiple(Input.mousePosition); // ← 새 함수
+                    break;
+            }
+        }
+
+        // (단일 전용 파괴 감시가 필요하면 유지)
         if (current is Object u && u == null)
             ClearSelection();
     }
 
-    // ───────────────────────────────────────────────────────────────────────
-    private void TrySelectAt(Vector2 screenPos)
+    // ───────────────────────────────WorkerMode────────────────────────────────────────
+    private void ClickSelectSingle(Vector2 screenPos)
     {
         var ray = mainCamera.ScreenPointToRay(screenPos);
         if (Physics.Raycast(ray, out var hit, raycastMaxDistance, raycastMask, QueryTriggerInteraction.Ignore))
@@ -59,19 +84,81 @@ public sealed class SelectionSystem : SystemBase
         if (current == next) return;
 
         if (current != null)
-            current.OnDeselected();
+        { 
+            if(TryHideHighlight(current))
+                current.OnDeselected();
+        }
 
         current = next;
-        
+
         if (current != null)
         {
-            current.OnSelected();
-            AttachRingTo(current);
+            if(TryHighligtSelect(current))
+                current.OnSelected();
         }
         else
         {
-            HideRing();
+            ClearSelection();
         }
+    }
+
+    // ───────────────────────────────MineMode────────────────────────────────────────
+    private void ClickSelectMultiple(Vector2 screenPos)
+    {
+        bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        bool ctrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+
+        var ray = mainCamera.ScreenPointToRay(screenPos);
+        if (Physics.Raycast(ray, out var hit, raycastMaxDistance, raycastMask, QueryTriggerInteraction.Ignore))
+        {
+            var target = hit.transform.GetComponentInParent<ISelectable>();
+            if (target != null)
+            {
+                if (ctrl)
+                {
+                    ToggleOne(target);
+                }
+                else if (shift)
+                {
+                    SelectOne(target); // 추가
+                }
+                else
+                {
+                    // 교체
+                    HideAllHighlight();
+                    SelectOne(target);
+                }
+                return;
+            }
+        }
+
+        // 빈 공간 클릭
+        if (!shift && !ctrl)
+            HideAllHighlight(); // 교체 정책일 때만
+    }
+    private void SelectOne(ISelectable s)
+    {
+        if (s == null) return;
+
+        if(TryHighligtSelect(s)) // 내부에서 selectedObjects[s] = projector; 처리됨
+            s.OnSelected();
+    }
+
+    private void DeselectOne(ISelectable s)
+    {
+        if (s == null) return;
+        if(TryHideHighlight(s))
+            s.OnDeselected();
+    }
+
+    private void ToggleOne(ISelectable s)
+    {
+        if (s == null) return;
+
+        if (TryHighligtSelect(s))
+            s.OnSelected();
+        else if (TryHideHighlight(s))
+            s.OnDeselected();
     }
 
     private void ClearSelection()
@@ -80,72 +167,143 @@ public sealed class SelectionSystem : SystemBase
             current.OnDeselected();
 
         current = null;
-        HideRing();
+        HideAllHighlight();
     }
 
     // ───────────────────── 공용 Projector 준비/부착/토글 ─────────────────────
     private void PrewarmSharedProjector()
     {
-        if (sharedProjector) return;
 
         if (!selectionDecalPrefab)
         {
             selectionDecalPrefab = Resources.Load<GameObject>("Prefabs/SelectDecal/SelectionDecal");
-
         }
+        sharedProjectorPool = new PooledBehaviour<DecalProjector>(selectionDecalPrefab);
 
-        var go = Instantiate(selectionDecalPrefab);
-        go.name = "__SharedDecalRing";
-        go.hideFlags = HideFlags.DontSave;
+        sharedProjectorPool.InitSetting(
+            (decalProjector) =>
+            {
+                var go = decalProjector.gameObject;
+                go.name = "__SharedDecalRing";
+                go.hideFlags = HideFlags.DontSave;
 
-        sharedProjector = go.GetComponent<DecalProjector>();
-        if (!sharedProjector)
-        {
-            Debug.LogError("[SelectionSystem] 프리팹에 DecalProjector 가 없습니다.");
-            return;
-        }
+                DecalProjector sharedProjector = go.GetComponent<DecalProjector>();
+                if (!sharedProjector)
+                {
+                    Debug.LogError("[SelectionSystem] 프리팹에 DecalProjector 가 없습니다.");
+                    return;
+                }
 
-        // 아래로 향하게(-Z 투영 → 로컬 +X 90도 회전)
-        sharedProjector.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
-        sharedProjector.enabled = false;
+                // 아래로 향하게(-Z 투영 → 로컬 +X 90도 회전)
+                sharedProjector.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                sharedProjector.enabled = false;
 
-        if (overrideSize)
-        {
-            var diameter = ringRadius * 2f;
-            sharedProjector.size = new Vector3(diameter, diameter, projectorDepth);
-        }
+                if (overrideSize)
+                {
+                    var diameter = ringRadius * 2f;
+                    sharedProjector.size = new Vector3(diameter, diameter, projectorDepth);
+                }
+
+
+            });
+
     }
 
-    private void AttachRingTo(ISelectable target)
+    private bool TryHighligtSelect(ISelectable target)
     {
-        if (!sharedProjector) return;
+        //if (!sharedProjector) return;
 
-        var t = sharedProjector.transform;
-        t.SetParent(target.Transform, true);               // 부모 영향은 유지하되, 이후 position은 월드로 세팅
-        t.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        t.localScale = Vector3.one;
+        switch (target.SelectionType)
+        {
+            case SelectionType.Worker:
+            case SelectionType.Building:
+                if (selectedRings.ContainsKey(target) &&  selectedRings[target] != null) return false;
 
-        Bounds sb = target.SelectionBounds;
+                DecalProjector sharedProjector = sharedProjectorPool.Spawn();
+                selectedRings[target] = sharedProjector;
 
-        // ── 크기(X,Y): XZ 최대 치수로 원형 링 직경
-        Vector3 sizeWS = sb.size;                          // SelectionBounds가 월드 기준이라고 가정
-        float baseDiameter = Mathf.Max(sizeWS.x, sizeWS.z);
-        float diameter = overrideSize ? ringRadius * 2f
-                                      : baseDiameter * (1f + autoPaddingPercent);
+                var t = sharedProjector.transform;
+                t.SetParent(target.Transform, true);               // 부모 영향은 유지하되, 이후 position은 월드로 세팅
+                t.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                t.localScale = Vector3.one;
 
-        // ── 깊이(Z): 지면 요철 높이폭 기반 (최소 기존 값 유지)
-        float depthLocal = Mathf.Max(projectorDepth, sizeWS.y + 0.02f);
+                Bounds sb = target.SelectionBounds;
 
-        sharedProjector.size = new Vector3(diameter, diameter, depthLocal);
+                // ── 크기(X,Y): XZ 최대 치수로 원형 링 직경
+                Vector3 sizeWS = sb.size;                          // SelectionBounds가 월드 기준이라고 가정
+                float baseDiameter = Mathf.Max(sizeWS.x, sizeWS.z);
+                float diameter = overrideSize ? ringRadius * 2f
+                                              : baseDiameter * (1f + autoPaddingPercent);
 
-        // ── 위치: 월드로 '가장 높은 점'에 맞춤 → 상자가 아래로 파고들며 겹침
-        t.position = new Vector3(sb.center.x, sb.center.y, sb.center.z);
+                // ── 깊이(Z): 지면 요철 높이폭 기반 (최소 기존 값 유지)
+                float depthLocal = Mathf.Max(projectorDepth, sizeWS.y + 0.02f);
 
-        sharedProjector.enabled = true;
+                sharedProjector.size = new Vector3(diameter, diameter, depthLocal);
+
+                // ── 위치: 월드로 '가장 높은 점'에 맞춤 → 상자가 아래로 파고들며 겹침
+                t.position = new Vector3(sb.center.x, sb.center.y, sb.center.z);
+
+                sharedProjector.enabled = true;
+
+                return true;
+
+
+            case SelectionType.Special:
+                if (selectedBools.ContainsKey(target) && selectedBools[target] == true) return false;
+                selectedBools[target] = true;
+
+                var r = target.SelectionRenderer;
+                var mpb = new MaterialPropertyBlock();
+                r.GetPropertyBlock(mpb);
+                mpb.SetColor(r.sharedMaterial && r.sharedMaterial.HasProperty("_BaseColor") ? Shader.PropertyToID("_BaseColor") : Shader.PropertyToID("_Color"), HighlightColor);
+                r.SetPropertyBlock(mpb);
+                // 해당 타겟의 material에 들어가서 texture base의 색깔을 연하게 하든 빛나게하든 하기.
+
+                return true;
+            default:
+                return false;
+        }
+
     }
 
-    private void HideRing()
+    private bool TryHideHighlight(ISelectable selectable)
     {
-        if (sharedProjector) sharedProjector.enabled = false;
+        switch (selectable.SelectionType)
+        {
+            case SelectionType.Worker:
+            case SelectionType.Building:
+                if (!selectedRings.ContainsKey(selectable) || selectedRings[selectable] == null) return false; 
+                var ring = selectedRings[selectable];
+                sharedProjectorPool.Despawn(ring);
+                selectedRings[selectable] = null;
+                return true;
+            case SelectionType.Special:
+                if (!selectedBools.ContainsKey(selectable) || selectedBools[selectable] == false) return false;
+                var r = selectable.SelectionRenderer;
+                var mpb = new MaterialPropertyBlock();
+                r.GetPropertyBlock(mpb);
+                mpb.Clear();               // MPB 비우면 원래 머티리얼 값으로 돌아갑니다
+                r.SetPropertyBlock(mpb);
+                selectedBools[selectable] = false;
+                return true ;
+
+            default:
+                return false;
+
+        }
     }
+
+    private void HideAllHighlight()
+    {
+        foreach (var key in selectedRings.Keys)
+        { 
+            sharedProjectorPool.Despawn(selectedRings[key]);
+            selectedRings[key] = null;
+        }
+        foreach (var key in selectedBools.Keys)
+        {
+            selectedBools[key] = false;
+        }
+    }
+
 }

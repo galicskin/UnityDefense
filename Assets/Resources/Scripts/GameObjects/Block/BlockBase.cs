@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class BlockBase : MonoBehaviour
+public class BlockBase : MonoBehaviour, ISelectable
 {
-    //public static MapBlockData 
+    public static MapBlockData blockData;
 
     private float _hardness;
     private float _density;
@@ -14,6 +14,48 @@ public class BlockBase : MonoBehaviour
     private const float _maxDurability = 100.0f;
     private Dictionary<DropRule,int> _dropRatesMinDropCountDict = new();
     private ObjectPoolSystem _objectPoolSystem = null;
+
+    Transform ISelectable.Transform
+    {
+        get { return this.transform; }
+    }
+
+    // SelectionType 구현
+    SelectionType ISelectable.SelectionType
+    {
+        get { return SelectionType.Special; }
+    }
+    Renderer cachedRenderer = null; 
+    Bounds ISelectable.SelectionBounds
+    {
+        get
+        {
+            if(!cachedRenderer)
+                cachedRenderer = GetComponentInChildren<Renderer>();
+            return cachedRenderer != null ? cachedRenderer.bounds : new Bounds(transform.position, Vector3.one);
+        }
+    }
+    Renderer ISelectable.SelectionRenderer
+    {
+        get
+        {
+            if (!cachedRenderer)
+                cachedRenderer = GetComponentInChildren<Renderer>();
+            return cachedRenderer;
+        }
+    }
+
+    void ISelectable.OnSelected()
+    {
+        Debug.Log($"{name} 선택됨");
+        // TODO: 아웃라인 표시 or UI 갱신
+    }
+
+    void ISelectable.OnDeselected()
+    {
+        Debug.Log($"{name} 선택 해제");
+    }
+
     public virtual void CreatedBlock(BlockProp blockProp)
     {
         _hardness = (float)blockProp.hardness;
@@ -130,5 +172,15 @@ public class BlockBase : MonoBehaviour
             return;
         }
         _objectPoolSystem.SpawnLazy(oreType.ToString(), prefab, pos, Quaternion.identity);
+    }
+
+    public void OnSelected()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void OnDeselected()
+    {
+        throw new System.NotImplementedException();
     }
 }

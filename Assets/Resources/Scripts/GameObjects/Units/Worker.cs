@@ -122,15 +122,25 @@ public class Worker : PooledObject, ISelectable,IMoveable
     {
         get { return SelectionType.Worker; }
     }
+    Renderer cachedRenderer = null;
     Bounds ISelectable.SelectionBounds
     {
         get
         {
-            var renderer = GetComponentInChildren<Renderer>();
-            return renderer != null ? renderer.bounds : new Bounds(transform.position, Vector3.one);
+            if(!cachedRenderer)
+                cachedRenderer = GetComponentInChildren<Renderer>();
+            return cachedRenderer != null ? cachedRenderer.bounds : new Bounds(transform.position, Vector3.one);
         }
     }
-
+    Renderer ISelectable.SelectionRenderer
+    {
+        get
+        {
+            if (!cachedRenderer)
+                cachedRenderer = GetComponentInChildren<Renderer>();
+            return cachedRenderer;
+        }
+    }
     public bool TestBool = false;
     void ISelectable.OnSelected()
     {

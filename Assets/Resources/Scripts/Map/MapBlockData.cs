@@ -37,7 +37,7 @@ public class BlockProp   // <-- struct 대신 class 권장
 
 
 [CreateAssetMenu(menuName = "Scriptable Object/MapBlockData", fileName = "MapBlockData")]
-public class MapBlockData : ScriptableObject
+public class MapBlockData : ScriptableSingleton<MapBlockData>
 {
 
     [Tooltip("displayName은 수정 가능, id는 내부에서 자동 생성되는 고유 키입니다.")]
@@ -47,7 +47,7 @@ public class MapBlockData : ScriptableObject
     [System.NonSerialized] Dictionary<string, int> _idxById;
     [System.NonSerialized] int _cachedCount;
 
-    void OnEnable()
+    protected override void OnEnable()
     {
         EnsureIds();      // 가벼운 고유화 (에디터에서만 호출됨)
         InvalidateCache();

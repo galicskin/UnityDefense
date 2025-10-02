@@ -43,12 +43,23 @@ public class SpawnBuilding : TowerBase, ISelectable
     {
         get { return SelectionType.Building; }
     }
+    Renderer cachedRenderer = null;
     Bounds ISelectable.SelectionBounds
     {
         get
         {
-            var renderer = GetComponentInChildren<Renderer>();
-            return renderer != null ? renderer.bounds : new Bounds(transform.position, Vector3.one);
+            if(!cachedRenderer)
+                cachedRenderer = GetComponentInChildren<Renderer>();
+            return cachedRenderer != null ? cachedRenderer.bounds : new Bounds(transform.position, Vector3.one);
+        }
+    }
+    Renderer ISelectable.SelectionRenderer
+    {
+        get
+        {
+            if (!cachedRenderer)
+                cachedRenderer = GetComponentInChildren<Renderer>();
+            return cachedRenderer;
         }
     }
     void ISelectable.OnSelected()

@@ -18,5 +18,5 @@ MonoBehaviour:
     boolValue: 0
     intValue: 0
     floatValue: 0
-    vector3Value: {x: 0, y: 0, z: 0}
+    vector3Value: {x: -7, y: 0, z: 5}
     objectValue: {fileID: 0}
