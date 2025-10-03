@@ -89,6 +89,8 @@ public class MapLoader : MonoBehaviour
         float blockUnit = mapData.BlockUnit;
         Vector3 startPoint = mapData.MapStartPoint;
 
+        //AStarø° æ≤¿œ mapData ¡¶¿€±Ó¡ˆ √ﬂ∞°
+        byte[,] aStarMapData = new byte[height, width];
         for (int y = 0; y < height; y++)
         {
             var row = (y < mapData.MapProp.Count) ? mapData.MapProp[y] : null;
@@ -97,7 +99,11 @@ public class MapLoader : MonoBehaviour
             for (int x = 0; x < width; x++)
             {
                 string id = (x < row.cells.Count) ? row.cells[x] : string.Empty;
-                if (string.IsNullOrEmpty(id)) continue; // ∫Û ƒ≠¿∫ Ω∫≈µ
+                if (string.IsNullOrEmpty(id))
+                {
+                    aStarMapData[y, x] = 127;
+                    continue; // ∫Û ƒ≠¿∫ Ω∫≈µ
+                }
 
                 if (!blockById.TryGetValue(id, out var bp) || bp.prefab == null)
                 {
@@ -105,11 +111,14 @@ public class MapLoader : MonoBehaviour
                     continue;
                 }
 
+                aStarMapData[y, x] = 0;
                 Vector3 loadPoint = startPoint + new Vector3(-blockUnit*x,blockUnit*0.5f,blockUnit*y);
-
                 Instantiate(bp.prefab, loadPoint, Quaternion.identity, parent);
             }
         }
+
+        PlayerControlSystem playerControlSystem = GameSystemManager.Instance.GetSystem<PlayerControlSystem>();
+        playerControlSystem.CreatedMap(aStarMapData,mapData);
     }
 
 

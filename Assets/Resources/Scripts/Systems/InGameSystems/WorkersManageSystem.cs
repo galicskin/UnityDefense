@@ -28,6 +28,7 @@ public class WorkersManageSystem : SystemBase
         _workers.Add(w);
         SetStateInternal(w, w.State, invokeEvent: false); // 초기 상태 반영
         OnWorkerAdded?.Invoke(w);
+
     }
 
     public void Unregister(Worker w)

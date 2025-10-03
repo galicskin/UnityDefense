@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -38,6 +39,28 @@ public sealed class SelectionSystem : SystemBase
 
     }
     SelectMode selectMode = SelectMode.Single;
+    SelectionType selectableTypes = SelectionType.Building | SelectionType.Worker;
+
+    public void SetSingleMode()
+    {
+        //Debug.Log("SetSingleMode");
+        selectMode = SelectMode.Single;
+        ClearSelection();
+    }
+
+    public void SetMultipleMode()
+    {
+        //Debug.Log("SetMultipleMode");
+        selectMode = SelectMode.Multiple;
+        ClearSelection();
+    }
+
+    public void SetSelectableTypes(SelectionType selectionTypes)
+    {
+        selectableTypes = selectionTypes;
+        ClearSelection();
+    }
+
     private void Awake()
     {
         if (!mainCamera) mainCamera = Camera.main;
@@ -74,7 +97,11 @@ public sealed class SelectionSystem : SystemBase
         if (Physics.Raycast(ray, out var hit, raycastMaxDistance, raycastMask, QueryTriggerInteraction.Ignore))
         {
             var target = hit.transform.GetComponentInParent<ISelectable>();
-            if (target != null) { SetSelection(target); return; }
+            if (target != null && (target.SelectionType & selectableTypes) != 0)
+            {
+                SetSelection(target); 
+                return; 
+            }
         }
         ClearSelection();
     }
@@ -112,7 +139,7 @@ public sealed class SelectionSystem : SystemBase
         if (Physics.Raycast(ray, out var hit, raycastMaxDistance, raycastMask, QueryTriggerInteraction.Ignore))
         {
             var target = hit.transform.GetComponentInParent<ISelectable>();
-            if (target != null)
+            if (target != null && (target.SelectionType & selectableTypes) != 0)
             {
                 if (ctrl)
                 {
@@ -124,8 +151,8 @@ public sealed class SelectionSystem : SystemBase
                 }
                 else
                 {
-                    // 掖羹
-                    HideAllHighlight();
+                    Debug.Log("掖羹");
+                    ClearAllSelectable();
                     SelectOne(target);
                 }
                 return;
@@ -134,7 +161,7 @@ public sealed class SelectionSystem : SystemBase
 
         // 綴 奢除 贗葛
         if (!shift && !ctrl)
-            HideAllHighlight(); // 掖羹 薑疇橾 陽虜
+            ClearAllSelectable(); // 掖羹 薑疇橾 陽虜
     }
     private void SelectOne(ISelectable s)
     {
@@ -165,9 +192,21 @@ public sealed class SelectionSystem : SystemBase
     {
         if (current != null)
             current.OnDeselected();
-
         current = null;
-        HideAllHighlight();
+
+        foreach (var key in selectedRings.Keys)
+        {
+            if (selectedRings[key] == null)
+                continue;
+            key.OnDeselected();
+        }
+        foreach (var key in selectedBools.Keys)
+        {
+            if (selectedBools[key] == false)
+                continue;
+            key.OnDeselected();
+        }
+        ClearAllSelectable();
     }
 
     // 式式式式式式式式式式式式式式式式式式式式式 奢辨 Projector 遽綠/睡雜/饜旋 式式式式式式式式式式式式式式式式式式式式式
@@ -215,6 +254,7 @@ public sealed class SelectionSystem : SystemBase
 
         switch (target.SelectionType)
         {
+           
             case SelectionType.Worker:
             case SelectionType.Building:
                 if (selectedRings.ContainsKey(target) &&  selectedRings[target] != null) return false;
@@ -293,17 +333,33 @@ public sealed class SelectionSystem : SystemBase
         }
     }
 
-    private void HideAllHighlight()
+    private void ClearAllSelectable()
     {
-        foreach (var key in selectedRings.Keys)
-        { 
-            sharedProjectorPool.Despawn(selectedRings[key]);
-            selectedRings[key] = null;
-        }
-        foreach (var key in selectedBools.Keys)
+        foreach (var kv in selectedRings.ToArray()) // 蝶鹿憐
         {
+            if (kv.Value != null) sharedProjectorPool.Despawn(kv.Value);
+            TryHideHighlight(kv.Key);
+            selectedRings[kv.Key] = null; // 傳朝 Remove(kv.Key);
+        }
+
+        foreach (var key in selectedBools.Keys.ToArray()) // 蝶鹿憐
+        {
+            TryHideHighlight(key);
             selectedBools[key] = false;
         }
+    }
+
+    public List<ISelectable> GetSelectedList()
+    {
+        if (selectableTypes == SelectionType.Special)
+        {
+            return selectedBools.Keys.ToList();
+        }
+        else if ((selectableTypes & (SelectionType.Worker | SelectionType.Building)) != 0 )
+        {
+            return selectedRings.Keys.ToList();
+        }
+        return null;
     }
 
 }

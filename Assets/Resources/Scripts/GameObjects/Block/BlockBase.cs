@@ -15,6 +15,7 @@ public class BlockBase : MonoBehaviour, ISelectable
     private Dictionary<DropRule,int> _dropRatesMinDropCountDict = new();
     private ObjectPoolSystem _objectPoolSystem = null;
 
+
     Transform ISelectable.Transform
     {
         get { return this.transform; }
@@ -67,12 +68,16 @@ public class BlockBase : MonoBehaviour, ISelectable
         {
             _dropRatesMinDropCountDict[dropRule] = dropRule.bonusDropMinCount;
         }
+
     }
 
     public virtual void Broken(Worker worker,float deltaTime)
     {
         if (worker == null) return;
         const float EPS = 1e-4f;
+
+        if (_durability <= 0f)
+            return;
 
         float prevDurability = _durability;
 
@@ -109,7 +114,6 @@ public class BlockBase : MonoBehaviour, ISelectable
 
     protected virtual void Collapse()
     {
-        
         Vector3 dropPosition = this.gameObject.transform.position;
         dropPosition.y = 0f;
         foreach (var _dropRule in _dropRatesMinDropCountDict.Keys)
@@ -183,4 +187,5 @@ public class BlockBase : MonoBehaviour, ISelectable
     {
         throw new System.NotImplementedException();
     }
+
 }

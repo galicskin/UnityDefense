@@ -101,7 +101,17 @@ public class Worker : PooledObject, ISelectable,IMoveable
     }
 
     // 등록/해제
-    private void OnEnable() => Manager.Register(this);
+    private void OnEnable()
+    { 
+        Manager.Register(this);
+        PlayerControlSystem playerControlSystem = GameSystemManager.Instance.GetSystem<PlayerControlSystem>();
+        if (!playerControlSystem)
+            return;
+
+        var context = playerControlSystem.GetContext();
+
+        aStarAgent.Initialize(context.AStarMapData, context.mapData.BlockUnit,context.mapData.MapStartPoint);//groundy는 해당 woprker의 키를 측정하여 기입.일단 0으로 
+    }
     private void OnDisable() => Manager.Unregister(this);
 
     public void MarkReserved() => Manager.SetState(this, WorkerState.Reserved);
@@ -109,8 +119,8 @@ public class Worker : PooledObject, ISelectable,IMoveable
     public void MarkIdle() => Manager.SetState(this, WorkerState.Idle);
 
 
-
     public NavMeshAgent navAgent { get; private set; }
+    public AStarAgent aStarAgent { get; private set; }
 
     Transform ISelectable.Transform
     {
@@ -141,6 +151,8 @@ public class Worker : PooledObject, ISelectable,IMoveable
             return cachedRenderer;
         }
     }
+
+
     public bool TestBool = false;
     void ISelectable.OnSelected()
     {

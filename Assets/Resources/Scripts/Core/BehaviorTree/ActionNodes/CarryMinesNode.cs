@@ -14,7 +14,7 @@ public class CarryMinesNode : ActionNode
 
     public override BTState Tick(BTContext ctx)
     {
-        Object _targetMine;
+        //Object _targetMine;
 
         // 애니매이션 또는 데이터 변경 실행
         return BTState.Success;

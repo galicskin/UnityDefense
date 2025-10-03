@@ -1,15 +1,17 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
+[Flags]
 public enum SelectionType
 {
-    None,
-    Worker,     // 광부, 일반 유닛 → 대부분의 명령 실행 가능 -> 링이생김
-    Building,   // 건물 → 이동은 불가, 생산/특수 명령 가능 -> 링이생김
-    Special     // 특수 오브젝트(예: 자원 노드, 퀘스트용 구조물, 상호작용 대상) -> 명령없이 빛남.
+    None = 0,
+    Worker = 1 << 0,
+    Building = 1 << 1,
+    Special = 1 << 2,
 }
-
 public interface ISelectable
 {
     Transform Transform { get; }

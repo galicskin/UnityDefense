@@ -7,5 +7,5 @@ using UnityEngine.AI;
 public interface IMoveable
 {
     NavMeshAgent navAgent { get; }
-
+    AStarAgent aStarAgent { get; }
 }
